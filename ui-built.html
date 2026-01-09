@@ -773,7 +773,7 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
 
         const chatType = isGroupChat ? '👥 Group Chat (3 people)' : '💬 1:1 Chat';
         showStatus(`Found ${msg.totalBubbles} bubbles — ${chatType}`, 'info');
-        setTimeout(() => hideStatus(), 3000);
+        // Don't auto-hide - keep the status visible so user knows their selection is valid
       } else if (msg.type === 'success') {
         showStatus(msg.message || 'Conversation generated successfully!', 'success');
         generateBtn.disabled = false;

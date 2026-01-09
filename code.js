@@ -493,6 +493,57 @@ function structureToArray(structure) {
 }
 
 // ============================================================================
+// SELECTION CHANGE LISTENER
+// ============================================================================
+
+// Listen for selection changes and automatically analyze
+figma.on('selectionchange', () => {
+  const selection = figma.currentPage.selection;
+
+  if (selection.length === 0) {
+    figma.ui.postMessage({
+      type: 'error',
+      message: 'Please select a Chat Thread component first'
+    });
+    return;
+  }
+
+  const result = analyzeChatStructure(selection[0]);
+
+  if (result.structure.length === 0) {
+    figma.ui.postMessage({
+      type: 'error',
+      message: 'No chat bubbles found in selection. Please select a Chat Thread component.'
+    });
+    return;
+  }
+
+  const patternDescription = structureToPatternDescription(result.structure);
+  const structureArray = result.structure.map(s => ({
+    type: s.type,
+    person: s.person,
+    hasTextNode: s.textNode !== null
+  }));
+
+  figma.ui.postMessage({
+    type: 'structure-analyzed',
+    structure: structureArray,
+    patternDescription: patternDescription,
+    totalBubbles: result.structure.length,
+    isGroupChat: result.isGroupChat,
+    participants: result.participants
+  });
+
+  // Store the structure for later use
+  figma.root.setPluginData('currentStructure', JSON.stringify(result.structure.map(s => ({
+    type: s.type,
+    person: s.person,
+    bubbleId: s.bubble.id,
+    textNodeId: s.textNode ? s.textNode.id : null
+  }))));
+});
+
+// ============================================================================
 // MESSAGE HANDLING
 // ============================================================================
 

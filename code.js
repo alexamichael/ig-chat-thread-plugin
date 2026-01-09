@@ -27,34 +27,65 @@ function findAllTextNodes(node, textNodes = []) {
 
 /**
  * Find profile photo/avatar components within a node
+ * Handles access issues gracefully when components are from external libraries
  */
 function findProfilePhotos(node, photos = [], depth = 0) {
   if (depth > 10) return photos;
-  const name = node.name.toLowerCase();
-  const nodeType = node.type;
+  
+  try {
+    const name = node.name.toLowerCase();
+    const nodeType = node.type;
 
-  const photoPatterns = ['profile', 'avatar', 'photo', 'pfp'];
-  const isProfilePhoto = photoPatterns.some(p => name.includes(p));
+    const photoPatterns = ['profile', 'avatar', 'photo', 'pfp'];
+    const isProfilePhoto = photoPatterns.some(p => name.includes(p));
 
-  if (isProfilePhoto && (nodeType === 'INSTANCE' || nodeType === 'COMPONENT' || nodeType === 'FRAME' || nodeType === 'ELLIPSE')) {
-    let photoId = node.name;
-    if (nodeType === 'INSTANCE' && node.mainComponent) {
-      photoId = node.mainComponent.id;
-    } else if ('fills' in node && Array.isArray(node.fills)) {
-      const imageFill = node.fills.find(f => f.type === 'IMAGE');
-      if (imageFill && imageFill.imageHash) {
-        photoId = imageFill.imageHash;
+    if (isProfilePhoto && (nodeType === 'INSTANCE' || nodeType === 'COMPONENT' || nodeType === 'FRAME' || nodeType === 'ELLIPSE')) {
+      let photoId = node.name; // Default fallback to node name
+      
+      try {
+        if (nodeType === 'INSTANCE') {
+          // Try to get mainComponent id, but handle cases where it's inaccessible
+          // (e.g., from external library without access)
+          if (node.mainComponent && node.mainComponent.id) {
+            photoId = node.mainComponent.id;
+          } else {
+            // Fallback: try to use the component's key or the instance's own id
+            photoId = node.id;
+          }
+        }
+      } catch (e) {
+        // mainComponent access failed (possibly external library without access)
+        console.log(`[PROFILE PHOTO] Could not access mainComponent for "${node.name}", using node.id as fallback`);
+        photoId = node.id;
+      }
+      
+      // Try to get image hash from fills as a more unique identifier
+      try {
+        if ('fills' in node && node.fills !== figma.mixed && Array.isArray(node.fills)) {
+          const imageFill = node.fills.find(f => f.type === 'IMAGE');
+          if (imageFill && imageFill.imageHash) {
+            photoId = imageFill.imageHash;
+          }
+        }
+      } catch (e) {
+        // fills access failed, use existing photoId
+        console.log(`[PROFILE PHOTO] Could not access fills for "${node.name}", using existing photoId`);
+      }
+      
+      photos.push({ node, photoId, name: node.name });
+      return photos;
+    }
+
+    if ('children' in node) {
+      for (const child of node.children) {
+        findProfilePhotos(child, photos, depth + 1);
       }
     }
-    photos.push({ node, photoId, name: node.name });
-    return photos;
+  } catch (e) {
+    // If any unexpected error occurs, log it and continue
+    console.error(`[PROFILE PHOTO] Error processing node: ${e.message}`);
   }
-
-  if ('children' in node) {
-    for (const child of node.children) {
-      findProfilePhotos(child, photos, depth + 1);
-    }
-  }
+  
   return photos;
 }
 

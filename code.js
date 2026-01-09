@@ -503,7 +503,7 @@ figma.on('selectionchange', () => {
   if (selection.length === 0) {
     figma.ui.postMessage({
       type: 'error',
-      message: 'Please select a Chat Thread component first'
+      message: 'Please select a Chat Thread component or group containing Chat Blocks or Text Chats'
     });
     return;
   }
@@ -513,7 +513,7 @@ figma.on('selectionchange', () => {
   if (result.structure.length === 0) {
     figma.ui.postMessage({
       type: 'error',
-      message: 'No chat bubbles found in selection. Please select a Chat Thread component.'
+      message: 'No chat bubbles found. Please select a Chat Thread component or group containing Chat Blocks or Text Chats.'
     });
     return;
   }
@@ -559,7 +559,7 @@ figma.ui.onmessage = async (msg) => {
     if (selection.length === 0) {
       figma.ui.postMessage({
         type: 'error',
-        message: 'Please select a Chat Thread component first'
+        message: 'Please select a Chat Thread component or group containing Chat Blocks or Text Chats'
       });
       return;
     }
@@ -569,7 +569,7 @@ figma.ui.onmessage = async (msg) => {
     if (result.structure.length === 0) {
       figma.ui.postMessage({
         type: 'error',
-        message: 'No chat bubbles found in selection. Please select a Chat Thread component.'
+        message: 'No chat bubbles found. Please select a Chat Thread component or group containing Chat Blocks or Text Chats.'
       });
       return;
     }
@@ -607,7 +607,7 @@ figma.ui.onmessage = async (msg) => {
     if (selection.length === 0) {
       figma.ui.postMessage({
         type: 'error',
-        message: 'Please select a Chat Thread component first'
+        message: 'Please select a Chat Thread component or group containing Chat Blocks or Text Chats'
       });
       return;
     }

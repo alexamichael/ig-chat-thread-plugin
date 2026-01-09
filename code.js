@@ -363,15 +363,15 @@ function analyzeChatStructure(threadNode) {
     return aY - bY;
   });
 
-  // Analyze each bubble and assign person (A, B, or C for group chats)
+  // Analyze each bubble and assign person (A = sender/you, B and C = recipients for group chats)
   const structure = bubbles.map((bubble, index) => {
     const type = getBubbleType(bubble);
     const textNode = getMainTextNode(bubble);
 
     // Determine person label
-    let person = 'A';
+    let person = 'B'; // Default to first recipient
     if (type === 'sender') {
-      person = 'B'; // Sender is always Person B (you)
+      person = 'A'; // Sender is always Person A (you)
     } else if (isGroupChat) {
       // For group chats, check which recipient this is
       const parentBlock = bubbleToBlock.get(bubble.id);
@@ -380,7 +380,7 @@ function analyzeChatStructure(threadNode) {
         if (photos.length > 0) {
           const photoId = photos[0].photoId;
           const photoIndex = recipientPhotoIds.indexOf(photoId);
-          person = photoIndex === 0 ? 'A' : 'C'; // First recipient = A, Second = C
+          person = photoIndex === 0 ? 'B' : 'C'; // First recipient = B, Second = C
         }
       }
     }
@@ -410,7 +410,7 @@ function analyzeChatStructure(threadNode) {
 
       // Assign person based on type and group chat status
       if (structure[i].type === 'sender') {
-        structure[i].person = 'B';
+        structure[i].person = 'A';
       } else if (isGroupChat) {
         // For group chat recipients, try to determine from parent block's profile photo
         const parentBlock = bubbleToBlock.get(structure[i].bubble.id);
@@ -419,29 +419,29 @@ function analyzeChatStructure(threadNode) {
           if (photos.length > 0) {
             const photoId = photos[0].photoId;
             const photoIndex = recipientPhotoIds.indexOf(photoId);
-            structure[i].person = photoIndex === 0 ? 'A' : 'C';
+            structure[i].person = photoIndex === 0 ? 'B' : 'C';
           } else {
             // No photo found, check surrounding bubbles for person hint
             const prevPerson = i > 0 ? structure[i - 1].person : null;
             const nextPerson = i < structure.length - 1 ? structure[i + 1].person : null;
-            if (prevPerson === 'A' || nextPerson === 'A') {
-              structure[i].person = 'A';
+            if (prevPerson === 'B' || nextPerson === 'B') {
+              structure[i].person = 'B';
             } else if (prevPerson === 'C' || nextPerson === 'C') {
               structure[i].person = 'C';
             } else {
-              // Default to alternating between A and C for variety
+              // Default to alternating between B and C for variety
               const recipientCount = structure.slice(0, i).filter(s => s.type === 'recipient').length;
-              structure[i].person = recipientCount % 2 === 0 ? 'A' : 'C';
+              structure[i].person = recipientCount % 2 === 0 ? 'B' : 'C';
             }
           }
         } else {
           // No parent block, use alternating pattern
           const recipientCount = structure.slice(0, i).filter(s => s.type === 'recipient').length;
-          structure[i].person = recipientCount % 2 === 0 ? 'A' : 'C';
+          structure[i].person = recipientCount % 2 === 0 ? 'B' : 'C';
         }
       } else {
-        // Non-group chat, all recipients are Person A
-        structure[i].person = 'A';
+        // Non-group chat, all recipients are Person B
+        structure[i].person = 'B';
       }
     }
   }
@@ -477,7 +477,7 @@ function structureToPatternDescription(structure) {
 
   // Convert to description
   return groups.map((g, i) => {
-    const person = g.type === 'sender' ? 'Person B (sender/you)' : 'Person A (recipient/other person)';
+    const person = g.type === 'sender' ? 'Person A (sender/you)' : 'Person B (recipient/other person)';
     return `${g.count} message${g.count > 1 ? 's' : ''} from ${person}`;
   }).join(', then ');
 }

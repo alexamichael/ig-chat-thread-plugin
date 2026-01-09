@@ -572,16 +572,29 @@
 
       const groupChatNote = isGroupChat
           ? `This is a GROUP CHAT with 3 people:
-- Person A = The SENDER (you/the main protagonist). Person A's messages appear on the RIGHT side (purple bubbles, no profile photo).
-- Person B = First recipient (friend #1). Person B's messages appear on the LEFT side with their profile photo.
-- Person C = Second recipient (friend #2). Person C's messages appear on the LEFT side with a different profile photo.
+- Person A = The SENDER (you/the main protagonist). Purple bubbles on the RIGHT.
+- Person B = First recipient (friend #1). Messages on the LEFT with profile photo.
+- Person C = Second recipient (friend #2). Messages on the LEFT with different profile photo.
 
-IMPORTANT RULES FOR GROUP CHAT:
-1. Person A is the MAIN CHARACTER that B and C are talking TO or ABOUT
-2. When B or C speak, they are addressing the group (including A) or responding to what A said
-3. Person A responds to questions from B and C
-4. B and C should NOT respond as if they were A - they have their own separate perspective
-5. Use group language like "you guys", "y'all", "everyone" when addressing multiple people`
+🚨 CRITICAL GROUP CHAT LANGUAGE RULES - YOU MUST FOLLOW THESE:
+1. NEVER use singular "you" - ALWAYS use "you guys", "you both", "y'all", "everyone", or "we"
+2. Every message should feel like it's addressed to MULTIPLE people, not just one person
+3. Make statements that include everyone: "we should", "let's all", "are we", "who's down"
+4. React to the GROUP, not individuals: "omg you guys", "wait both of you", "lol we're all"
+
+WRONG examples (do NOT use these):
+- "Are you free this weekend?" ❌
+- "What do you think?" ❌
+- "Don't forget your wallet" ❌
+
+CORRECT examples (USE these patterns):
+- "Are you guys free this weekend?" ✓
+- "What do y'all think?" ✓
+- "Nobody forget their wallets lol" ✓
+- "We should totally do that" ✓
+- "Who's down for Sunday?" ✓
+- "Let's all meet at 2" ✓
+- "Omg you guys this is perfect" ✓`
           : `This is a 1:1 chat between Person A (sender/you) and Person B (recipient/the other person).`;
 
       const systemPrompt = `You are a conversation generator creating a realistic text message conversation between ${topicPrompt}

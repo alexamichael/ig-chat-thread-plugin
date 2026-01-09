@@ -756,16 +756,7 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
     // Share button
     document.getElementById('share-btn').addEventListener('click', () => {
       const pluginUrl = 'https://www.figma.com/community/plugin/1590428082327008419/ig-direct-chat-gen';
-      navigator.clipboard.writeText(pluginUrl).then(() => {
-        const btn = document.getElementById('share-btn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '✓ Link Copied!';
-        setTimeout(() => {
-          btn.innerHTML = originalText;
-        }, 2000);
-      }).catch(() => {
-        alert('Plugin: IG Direct Chat Gen');
-      });
+      window.open(pluginUrl, '_blank');
     });
 
     // Handle messages from plugin

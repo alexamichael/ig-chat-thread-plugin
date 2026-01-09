@@ -1,0 +1,29 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Node (if using npm/yarn in future)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build artifacts (keep ui-built.html tracked since it's the published file)
+*.backup
+
+# Temporary files
+temp_*.txt
+*.tmp
+*.temp
+
+# Logs
+*.log

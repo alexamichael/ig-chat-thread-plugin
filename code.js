@@ -114,8 +114,22 @@ function setProfileVariant(personNode, variantName) {
       const propValue = props[handleKey];
       console.log(`[PROFILE] Found Handle property "${handleKey}" with current value: "${propValue.value}" (type: ${propValue.type})`);
 
-      // Try to set the variant
+      // WORKAROUND: First reset to a different value, then set to desired value
+      // This forces Figma to actually re-render the component
+      const currentValue = propValue.value;
+
+      // If current value is different from target, we can set directly
+      // But if somehow it's already set, we need to toggle it
       try {
+        // First, try setting to a known different value to force a refresh
+        if (currentValue === variantName) {
+          console.log(`[PROFILE] Value already set to "${variantName}", forcing refresh...`);
+          // Set to a different value first
+          const tempValue = variantName === 'chantouflowergirl' ? 'gwangurl77' : 'chantouflowergirl';
+          personNode.setProperties({ [handleKey]: tempValue });
+        }
+
+        // Now set to the desired value
         personNode.setProperties({ [handleKey]: variantName });
 
         // Verify the change was applied
@@ -125,9 +139,51 @@ function setProfileVariant(personNode, variantName) {
 
         if (newValue === variantName) {
           console.log(`[PROFILE] ✓ Successfully set "${handleKey}" to "${variantName}"`);
+
+          // WORKAROUND 1: Reset all overrides on the Person component to clear stale visual state
+          try {
+            if (typeof personNode.resetOverrides === 'function') {
+              personNode.resetOverrides();
+              console.log(`[PROFILE] Reset overrides on Person component`);
+            }
+          } catch (resetError) {
+            console.log(`[PROFILE] Could not reset overrides:`, resetError.message);
+          }
+
+          // WORKAROUND 2: Try to force visual refresh by slightly adjusting opacity
+          try {
+            const originalOpacity = personNode.opacity;
+            personNode.opacity = originalOpacity === 1 ? 0.999 : 1;
+            personNode.opacity = originalOpacity;
+            console.log(`[PROFILE] Forced visual refresh via opacity toggle`);
+          } catch (opacityError) {
+            // Ignore opacity errors - not all nodes support it
+          }
+
+          // WORKAROUND 3: Re-set the property after reset to ensure it takes effect
+          try {
+            personNode.setProperties({ [handleKey]: variantName });
+            console.log(`[PROFILE] Re-set Handle property after reset`);
+          } catch (resetSetError) {
+            // Ignore if re-setting fails
+          }
+
           return variantName;
         } else {
           console.log(`[PROFILE] ✗ Value did NOT change! Expected "${variantName}" but got "${newValue}"`);
+
+          // DEBUG: Log all available variant values for this component
+          try {
+            const mainComp = personNode.mainComponent;
+            if (mainComp && mainComp.parent && mainComp.parent.type === 'COMPONENT_SET') {
+              const variantSet = mainComp.parent;
+              const availableVariants = variantSet.children.map(c => c.name);
+              console.log(`[PROFILE] Available variants in set:`, availableVariants.slice(0, 10), '...');
+            }
+          } catch (debugError) {
+            console.log(`[PROFILE] Could not get available variants:`, debugError.message);
+          }
+
           return null;
         }
       } catch (e) {
@@ -476,51 +532,44 @@ function findRecipientChatBlocks(threadNode) {
 /**
  * Find the profile photo component within a Chat block
  * Need to find the Person component with Handle property, which may be deeply nested
+ * Structure can be: Text chat > Chat + Reaction > Content > Profile > Profile photo > Profile Photo > Person
  */
 function findProfileInBlock(blockNode) {
-  console.log(`[BLOCK PROFILE] Searching for profile in block: "${blockNode.name}"`);
+  console.log(`[BLOCK PROFILE] ========================================`);
+  console.log(`[BLOCK PROFILE] Searching for profile in block: "${blockNode.name}" (${blockNode.type})`);
+  console.log(`[BLOCK PROFILE] Block ID: ${blockNode.id}`);
 
   let foundPerson = null;
+  let allInstancesFound = []; // Track all instances we find for debugging
 
   function search(node, depth = 0, path = '') {
-    if (depth > 20) return; // Increased depth for deep nesting
+    if (depth > 25) return; // Increased depth for very deep nesting
     if (foundPerson) return; // Stop if already found
 
     const name = node.name.toLowerCase();
     const nodeType = node.type;
     const currentPath = path ? `${path} > ${node.name}` : node.name;
 
-    // Log deeper to see the structure
-    if (depth < 10) {
+    // Log all nodes at first 15 levels for debugging
+    if (depth < 15) {
       console.log(`[BLOCK PROFILE] (depth ${depth}): "${node.name}" (${nodeType})`);
     }
 
-    // Look for Person component - check if it's an INSTANCE with Handle property
-    if (name.includes('person') && nodeType === 'INSTANCE') {
+    // Check ANY INSTANCE node for Handle property - not just ones named "person"
+    if (nodeType === 'INSTANCE') {
       try {
         const props = node.componentProperties;
         const propKeys = Object.keys(props);
-        console.log(`[BLOCK PROFILE] Found Person instance: "${node.name}", properties:`, propKeys);
+
+        // Log all instances we find
+        allInstancesFound.push({ name: node.name, path: currentPath, props: propKeys });
 
         if (propKeys.some(k => k.toLowerCase().includes('handle'))) {
-          console.log(`[BLOCK PROFILE] ✓ Person has Handle property! Path: ${currentPath}`);
-          foundPerson = node;
-          return;
-        }
-      } catch (e) {
-        console.log(`[BLOCK PROFILE] Could not read properties of "${node.name}":`, e.message);
-      }
-    }
-
-    // Also check for .People profile pictures component
-    if (name.includes('people profile') && nodeType === 'INSTANCE') {
-      try {
-        const props = node.componentProperties;
-        const propKeys = Object.keys(props);
-        console.log(`[BLOCK PROFILE] Found .People profile pictures: "${node.name}", properties:`, propKeys);
-
-        if (propKeys.some(k => k.toLowerCase().includes('handle'))) {
-          console.log(`[BLOCK PROFILE] ✓ .People has Handle property! Path: ${currentPath}`);
+          console.log(`[BLOCK PROFILE] ✓ Found INSTANCE with Handle property!`);
+          console.log(`[BLOCK PROFILE]   Name: "${node.name}"`);
+          console.log(`[BLOCK PROFILE]   Path: ${currentPath}`);
+          console.log(`[BLOCK PROFILE]   Properties: ${propKeys.join(', ')}`);
+          console.log(`[BLOCK PROFILE]   Node ID: ${node.id}`);
           foundPerson = node;
           return;
         }
@@ -539,11 +588,20 @@ function findProfileInBlock(blockNode) {
 
   search(blockNode);
 
+  // Log all instances found for debugging
+  console.log(`[BLOCK PROFILE] Total INSTANCE nodes found: ${allInstancesFound.length}`);
+  for (const inst of allInstancesFound) {
+    console.log(`[BLOCK PROFILE]   - "${inst.name}" at ${inst.path}`);
+    console.log(`[BLOCK PROFILE]     Props: ${inst.props.join(', ') || 'none'}`);
+  }
+
   if (foundPerson) {
+    console.log(`[BLOCK PROFILE] ✓ Returning Person node: "${foundPerson.name}"`);
     return foundPerson;
   }
 
-  console.log(`[BLOCK PROFILE] No Person with Handle found in block`);
+  console.log(`[BLOCK PROFILE] ✗ No node with Handle property found in block "${blockNode.name}"`);
+  console.log(`[BLOCK PROFILE] ========================================`);
   return null;
 }
 
@@ -1057,13 +1115,39 @@ async function setTextNodeContent(textNode, content) {
 
 /**
  * Analyze the structure of a Chat Thread and return the pattern of bubbles
- * Now detects group chats by checking for multiple unique profile photos
+ * Now detects group chats by checking the component's "Group chat?" property first,
+ * then falling back to checking for multiple unique profile photos
  */
 function analyzeChatStructure(threadNode) {
+  // First, check if the component has a "Group chat?" property
+  let isGroupChatFromProperty = null;
+
+  if (threadNode.type === 'INSTANCE') {
+    try {
+      const props = threadNode.componentProperties;
+      for (const key of Object.keys(props)) {
+        const keyLower = key.toLowerCase();
+        if (keyLower.includes('group')) {
+          const value = props[key].value;
+          // Handle both boolean and string variants
+          if (typeof value === 'boolean') {
+            isGroupChatFromProperty = value;
+          } else if (typeof value === 'string') {
+            isGroupChatFromProperty = value.toLowerCase() === 'true';
+          }
+          console.log(`[ANALYZE] Found "Group chat?" property: ${key} = ${value} → isGroupChat = ${isGroupChatFromProperty}`);
+          break;
+        }
+      }
+    } catch (e) {
+      console.log('[ANALYZE] Could not read component properties:', e.message);
+    }
+  }
+
   // Find chat blocks first
   let chatBlocks = findChatBlocks(threadNode);
 
-  // Track unique recipient profile photos for group chat detection
+  // Track unique recipient profile photos for group chat detection (fallback)
   const recipientProfiles = new Map(); // photoId -> first occurrence index
   let blockIndex = 0;
 
@@ -1081,10 +1165,11 @@ function analyzeChatStructure(threadNode) {
     blockIndex++;
   }
 
-  const isGroupChat = recipientProfiles.size > 1;
+  // Use the component property if available, otherwise fall back to profile detection
+  const isGroupChat = isGroupChatFromProperty !== null ? isGroupChatFromProperty : recipientProfiles.size > 1;
   const recipientPhotoIds = Array.from(recipientProfiles.keys());
 
-  console.log(`[GROUP CHAT] Unique recipient profiles: ${recipientProfiles.size}, Is Group: ${isGroupChat}`);
+  console.log(`[ANALYZE] isGroupChatFromProperty: ${isGroupChatFromProperty}, recipientProfiles.size: ${recipientProfiles.size}, final isGroupChat: ${isGroupChat}`);
 
   // Collect all bubbles
   let bubbles = [];

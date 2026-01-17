@@ -325,6 +325,122 @@ function isNodeInHeader(node) {
 }
 
 /**
+ * Create a realistic-looking full name from a username
+ * Uses the first letter of the username to pick a realistic first name
+ */
+function createFallbackNameFromUsername(username) {
+  // Common first names organized by first letter
+  const firstNamesByLetter = {
+    'a': ['Alex', 'Amanda', 'Andrew', 'Anna', 'Anthony', 'Ashley', 'Aiden', 'Aria', 'Austin', 'Audrey'],
+    'b': ['Benjamin', 'Bella', 'Brandon', 'Brianna', 'Blake', 'Brooke', 'Brian', 'Bailey', 'Bradley', 'Bianca'],
+    'c': ['Christopher', 'Charlotte', 'Caleb', 'Chloe', 'Cameron', 'Claire', 'Connor', 'Caroline', 'Carter', 'Cassidy'],
+    'd': ['Daniel', 'Diana', 'David', 'Daisy', 'Dylan', 'Destiny', 'Derek', 'Delilah', 'Dominic', 'Dakota'],
+    'e': ['Ethan', 'Emma', 'Elijah', 'Emily', 'Evan', 'Elena', 'Eric', 'Elizabeth', 'Edward', 'Eva'],
+    'f': ['Felix', 'Faith', 'Finn', 'Fiona', 'Francisco', 'Felicity', 'Fernando', 'Francesca', 'Franklin', 'Flora'],
+    'g': ['Gabriel', 'Grace', 'Gavin', 'Gabriella', 'George', 'Gianna', 'Grant', 'Genesis', 'Giovanni', 'Gemma'],
+    'h': ['Henry', 'Hannah', 'Hunter', 'Haley', 'Harrison', 'Harper', 'Hayden', 'Heidi', 'Hugo', 'Holly'],
+    'i': ['Isaac', 'Isabella', 'Ivan', 'Ivy', 'Ian', 'Iris', 'Isaiah', 'Isla', 'Ismael', 'Imani'],
+    'j': ['James', 'Jessica', 'Jacob', 'Julia', 'Joshua', 'Jasmine', 'Jordan', 'Jade', 'Julian', 'Jocelyn'],
+    'k': ['Kevin', 'Katherine', 'Kyle', 'Kylie', 'Kenneth', 'Kira', 'Keith', 'Kelly', 'Kai', 'Kimberly'],
+    'l': ['Liam', 'Lily', 'Lucas', 'Luna', 'Logan', 'Layla', 'Leo', 'Lauren', 'Luke', 'Leah'],
+    'm': ['Michael', 'Maria', 'Mason', 'Mia', 'Matthew', 'Madison', 'Marcus', 'Maya', 'Max', 'Melissa'],
+    'n': ['Nathan', 'Natalie', 'Noah', 'Nicole', 'Nicholas', 'Nora', 'Nolan', 'Naomi', 'Neil', 'Nina'],
+    'o': ['Oliver', 'Olivia', 'Oscar', 'Ophelia', 'Owen', 'Octavia', 'Omar', 'Opal', 'Orion', 'Odessa'],
+    'p': ['Patrick', 'Penelope', 'Peter', 'Paige', 'Paul', 'Piper', 'Philip', 'Priscilla', 'Preston', 'Pearl'],
+    'q': ['Quinn', 'Queenie', 'Quentin', 'Quincy', 'Quinton', 'Queen', 'Quillan', 'Quella', 'Quest', 'Quinta'],
+    'r': ['Ryan', 'Rachel', 'Robert', 'Rebecca', 'Richard', 'Riley', 'Raymond', 'Rosa', 'Ryder', 'Ruby'],
+    's': ['Samuel', 'Sophia', 'Sebastian', 'Sarah', 'Steven', 'Stella', 'Scott', 'Samantha', 'Shane', 'Sierra'],
+    't': ['Thomas', 'Taylor', 'Tyler', 'Trinity', 'Timothy', 'Tessa', 'Trevor', 'Tiffany', 'Tristan', 'Thea'],
+    'u': ['Ulysses', 'Uma', 'Uriel', 'Unity', 'Urban', 'Ursula', 'Umar', 'Una', 'Usher', 'Unique'],
+    'v': ['Victor', 'Victoria', 'Vincent', 'Valentina', 'Vaughn', 'Vanessa', 'Vince', 'Vera', 'Vernon', 'Violet'],
+    'w': ['William', 'Willow', 'Wesley', 'Wendy', 'Walter', 'Whitney', 'Wyatt', 'Willa', 'Warren', 'Winter'],
+    'x': ['Xavier', 'Ximena', 'Xander', 'Xyla', 'Xeno', 'Xiomara', 'Xerxes', 'Xena', 'Xavi', 'Xia'],
+    'y': ['Yusuf', 'Yara', 'Yosef', 'Yasmine', 'Yuri', 'Yvonne', 'Yael', 'Yolanda', 'Yahir', 'Yvette'],
+    'z': ['Zachary', 'Zoe', 'Zane', 'Zara', 'Zander', 'Zelda', 'Zion', 'Zena', 'Zeke', 'Zinnia']
+  };
+
+  // Common last names
+  const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Wilson', 'Anderson', 'Taylor', 'Thomas', 'Moore', 'Jackson', 'Martin', 'Lee', 'Thompson', 'White'];
+
+  // Get the first letter of the username (lowercase)
+  const cleanedUsername = username.replace(/[^a-zA-Z]/g, '');
+  const firstLetter = cleanedUsername.length > 0 ? cleanedUsername.charAt(0).toLowerCase() : 'a';
+
+  // Get first names for this letter, or default to 'a' names
+  const firstNames = firstNamesByLetter[firstLetter] || firstNamesByLetter['a'];
+
+  // Pick a random first name and last name
+  const randomFirstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+  const randomLastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+
+  return randomFirstName + ' ' + randomLastName;
+}
+
+/**
+ * Find Title and Body text nodes in the Header Module
+ * Based on component structure:
+ * - Header Module > Profile + Text > Text > Title text > Name (TEXT)
+ * - Header Module > Profile + Text > Text > Body text > 1st Body line (TEXT)
+ * Returns { titleNode, bodyNode } or null values if not found
+ */
+function findHeaderTitleAndBody(headerNode) {
+  let titleNode = null;
+  let bodyNode = null;
+
+  function search(node, depth = 0, parentName = '') {
+    if (depth > 15) return;
+    if (titleNode && bodyNode) return; // Found both, stop searching
+
+    const name = node.name.toLowerCase();
+    const nodeType = node.type;
+    const parentLower = parentName.toLowerCase();
+
+    if (nodeType === 'TEXT') {
+      // Look for "Name" text node inside "Title text" container
+      if (name === 'name' && parentLower.includes('title')) {
+        console.log(`[HEADER TEXT] Found Name node inside Title text: "${node.name}" with text: "${node.characters}"`);
+        titleNode = node;
+      }
+      // Look for "1st Body line" text node inside "Body text" container
+      else if (name.includes('1st body') || name === '1st body line') {
+        console.log(`[HEADER TEXT] Found 1st Body line node: "${node.name}" with text: "${node.characters}"`);
+        bodyNode = node;
+      }
+    }
+
+    if ('children' in node) {
+      for (const child of node.children) {
+        search(child, depth + 1, node.name);
+        if (titleNode && bodyNode) return;
+      }
+    }
+  }
+
+  search(headerNode);
+
+  // Debug: If not found, log what we did find
+  if (!titleNode || !bodyNode) {
+    console.log(`[HEADER TEXT] Search result - titleNode: ${titleNode ? 'found' : 'NOT FOUND'}, bodyNode: ${bodyNode ? 'found' : 'NOT FOUND'}`);
+    // Do a more detailed search to see what text nodes exist
+    function debugSearch(node, depth = 0, path = '') {
+      if (depth > 15) return;
+      const currentPath = path ? `${path} > ${node.name}` : node.name;
+      if (node.type === 'TEXT') {
+        console.log(`[HEADER TEXT DEBUG] Text node found: "${currentPath}" = "${node.characters}"`);
+      }
+      if ('children' in node) {
+        for (const child of node.children) {
+          debugSearch(child, depth + 1, currentPath);
+        }
+      }
+    }
+    debugSearch(headerNode);
+  }
+
+  return { titleNode, bodyNode };
+}
+
+/**
  * Find all recipient Chat blocks in a Chat Thread
  */
 function findRecipientChatBlocks(threadNode) {
@@ -1313,47 +1429,43 @@ console.log(`[PROFILE] msg.isGroupChat = ${msg.isGroupChat}`);
             }
 
             // ================================================================
-            // SET PROFILE PHOTOS ON CHAT BLOCKS
+            // SET PROFILE PHOTOS AND ADMIN TEXT ON CHAT BLOCKS (TOGETHER)
             // ================================================================
-            console.log('[PROFILE] Setting profile photos on Chat blocks...');
+            console.log('[PROFILE] Setting profile photos and admin text on Chat blocks...');
 
-            // Find all recipient Chat blocks
+            // Wait for Figma to complete the variant swap before setting Chat block profiles
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Find all recipient blocks - we'll set BOTH profile photo AND admin text per block
+            // This ensures they stay in sync
             const recipientBlocks = findRecipientChatBlocks(node);
             console.log(`[PROFILE] Found ${recipientBlocks.length} recipient Chat blocks`);
 
-            // For now, alternate between B and C for recipient blocks
-            // (Later, Llama will decide the distribution)
-            let recipientIndex = 0;
-            for (const block of recipientBlocks) {
-              const person = recipientIndex % 2 === 0 ? 'B' : 'C';
+            // For each recipient block, set both the profile photo and admin text to the same person
+            for (let i = 0; i < recipientBlocks.length; i++) {
+              const block = recipientBlocks[i];
+              const person = i % 2 === 0 ? 'B' : 'C';
               const profileToSet = person === 'B' ? profilesAssigned.B : profilesAssigned.C;
 
-              // Find profile photo component within the block
-              const blockProfilePhoto = findProfileInBlock(block);
-              if (blockProfilePhoto) {
-                console.log(`[PROFILE] Setting Chat block ${recipientIndex} to "${profileToSet}"`);
-                setProfileVariant(blockProfilePhoto, profileToSet);
+              console.log(`[BLOCK ${i}] Setting to Person ${person} = "${profileToSet}"`);
+
+              // Find and set the Person component's profile photo within this block
+              const personNode = findProfileInBlock(block);
+              if (personNode) {
+                console.log(`[BLOCK ${i}] Found Person node: "${personNode.name}"`);
+                setProfileVariant(personNode, profileToSet);
+              } else {
+                console.log(`[BLOCK ${i}] No Person node found in block`);
               }
 
-              // ================================================================
-              // SET ADMIN TEXT (Username) ON CHAT BLOCK
-              // ================================================================
+              // Find and set the admin text within this same block
               const adminTextNode = findAdminText(block);
               if (adminTextNode) {
-                console.log(`[ADMIN TEXT] Setting username to "${profileToSet}" in Chat block ${recipientIndex}`);
-                // Load font and set the text
-                setTextNodeContent(adminTextNode, profileToSet).then(success => {
-                  if (success) {
-                    console.log(`[ADMIN TEXT] Successfully set username to "${profileToSet}"`);
-                  } else {
-                    console.log(`[ADMIN TEXT] Failed to set username`);
-                  }
-                });
+                console.log(`[BLOCK ${i}] Setting admin text to "${profileToSet}"`);
+                await setTextNodeContent(adminTextNode, profileToSet);
               } else {
-                console.log(`[ADMIN TEXT] No Admin text node found in Chat block ${recipientIndex}`);
+                console.log(`[BLOCK ${i}] No admin text node found in block`);
               }
-
-              recipientIndex++;
             }
 
             // ================================================================
@@ -1363,6 +1475,29 @@ console.log(`[PROFILE] msg.isGroupChat = ${msg.isGroupChat}`);
             const structureResult = analyzeChatStructure(node);
             if (structureResult.structure.length > 0) {
               await updateCreatedChatText(node, structureResult.structure, profilesAssigned);
+            }
+
+            // ================================================================
+            // UPDATE HEADER TITLE AND BODY TEXT (for Group Chat)
+            // ================================================================
+            console.log('[HEADER TEXT] Updating Header for Group Chat...');
+
+            if (headerModule) {
+              const { titleNode, bodyNode } = findHeaderTitleAndBody(headerModule);
+
+              if (titleNode) {
+                console.log('[HEADER TEXT] Setting Title to: "Friend group"');
+                await setTextNodeContent(titleNode, 'Friend group');
+              } else {
+                console.log('[HEADER TEXT] Title node not found');
+              }
+
+              if (bodyNode) {
+                console.log('[HEADER TEXT] Setting Body to: "Change name and image"');
+                await setTextNodeContent(bodyNode, 'Change name and image');
+              } else {
+                console.log('[HEADER TEXT] Body node not found');
+              }
             }
 
           } else {
@@ -1450,6 +1585,35 @@ console.log(`[PROFILE] msg.isGroupChat = ${msg.isGroupChat}`);
                   }
                 });
               }
+            }
+
+            // ================================================================
+            // UPDATE HEADER TITLE AND BODY TEXT (for 1:1 Chat)
+            // ================================================================
+            // Generate a name from the username and update Header text directly
+            console.log(`[HEADER TEXT] Updating Header for username: ${profilesAssigned.B}`);
+
+            if (headerModule) {
+              const { titleNode, bodyNode } = findHeaderTitleAndBody(headerModule);
+
+              // Generate a fallback name from the username
+              const generatedName = createFallbackNameFromUsername(profilesAssigned.B);
+
+              if (titleNode) {
+                console.log(`[HEADER TEXT] Setting Title to: "${profilesAssigned.B}"`);
+                await setTextNodeContent(titleNode, profilesAssigned.B);
+              } else {
+                console.log('[HEADER TEXT] Title node not found');
+              }
+
+              if (bodyNode) {
+                console.log(`[HEADER TEXT] Setting Body to: "${generatedName}"`);
+                await setTextNodeContent(bodyNode, generatedName);
+              } else {
+                console.log('[HEADER TEXT] Body node not found');
+              }
+            } else {
+              console.log('[HEADER TEXT] Header Module not found');
             }
           }
 

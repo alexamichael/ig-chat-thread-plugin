@@ -533,9 +533,108 @@
     const groupSizeContainer = document.getElementById('group-size-container');
     const groupSizeSelect = document.getElementById('group-size-select');
 
+    // ============================================================================
+    // LLAMA API: Generate full name from username
+    // ============================================================================
+    async function generateNameFromUsername(username) {
+      console.log(`[NAME GEN] Generating name from username: ${username}`);
+
+      const systemPrompt = `You are a name generator. Given a social media username, generate a realistic full name that could belong to that person.
+
+RULES:
+1. The generated name should use as many letters or similar sounds from the username as possible
+2. The name should sound like a real person's name (first name + last name)
+3. Be creative but keep it realistic - these should be names real people might have
+4. Consider international names that match the username's style
+5. Return ONLY the full name, nothing else
+
+EXAMPLES:
+- "j-schroder" → "Jordan Schröder"
+- "kalindi_rainbows" → "Kalindi Raine"
+- "gwangurl77" → "Gwang-Min Park"
+- "mishka_songs" → "Mishka Sanchez"
+- "pierre_thecomet" → "Pierre Comeau"
+- "silvaqueen15" → "Silva Quinn"
+- "alo.daiane1" → "Daiane Alonso"
+- "seoyeonseoul" → "Seo-Yeon Kim"
+- "nora.needs.cheese" → "Nora Chase"
+- "stellas_gr00v3" → "Stella Grove"`;
+
+      const userPrompt = `Generate a realistic full name for the username: "${username}"
+
+Return ONLY the name, no quotes, no explanation.`;
+
+      try {
+        const apiUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://api.llama.com/v1/chat/completions');
+
+        const response = await fetchWithTimeout(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LLAMA_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'Llama-4-Maverick-17B-128E-Instruct-FP8',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            max_tokens: 50,
+            temperature: 0.8
+          })
+        });
+
+        if (!response.ok) {
+          let errorText = '';
+          try {
+            errorText = await response.text();
+          } catch (e) {
+            errorText = 'Unable to read error response';
+          }
+          throw parseAPIError(response.status, errorText);
+        }
+
+        const data = await response.json();
+
+        if (data.choices && data.choices[0] && data.choices[0].message) {
+          const generatedName = data.choices[0].message.content.trim();
+          console.log(`[NAME GEN] Generated name: ${generatedName}`);
+          return generatedName;
+        }
+
+        throw new LlamaAPIError('Empty response from Llama API.', 'parse', JSON.stringify(data));
+      } catch (error) {
+        console.error('[NAME GEN] Error generating name:', error);
+        // Fallback: Create a simple name from the username
+        const fallbackName = createFallbackName(username);
+        console.log(`[NAME GEN] Using fallback name: ${fallbackName}`);
+        return fallbackName;
+      }
+    }
+
+    // Create a fallback name if Llama API fails
+    function createFallbackName(username) {
+      // Remove numbers and special characters, split by common delimiters
+      const cleaned = username.replace(/[0-9_.-]/g, ' ').trim();
+      const parts = cleaned.split(/\s+/).filter(p => p.length > 0);
+
+      if (parts.length === 0) {
+        return 'Alex User';
+      }
+
+      // Capitalize each part
+      const capitalized = parts.map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase());
+
+      if (capitalized.length === 1) {
+        return capitalized[0] + ' Smith';
+      }
+
+      return capitalized.slice(0, 2).join(' ');
+    }
+
     // Chat type radio button handlers
     chatTypeRadios.forEach(radio => {
-      radio.addEventListener('change', (e) => {
+      radio.addEventListener('change', async (e) => {
         const selectedValue = e.target.value;
         userSelectedChatType = selectedValue;
 
@@ -543,20 +642,30 @@
           groupSizeContainer.style.display = 'block';
           isGroupChat = true;
           participants = parseInt(groupSizeSelect.value);
+
+          // Send message to plugin to toggle to Group Chat
+          parent.postMessage({
+            pluginMessage: {
+              type: 'toggle-chat-type',
+              isGroupChat: true,
+              participants: participants
+            }
+          }, '*');
         } else {
           groupSizeContainer.style.display = 'none';
           isGroupChat = false;
           participants = 2;
-        }
 
-        // Send message to plugin to toggle the component property
-        parent.postMessage({
-          pluginMessage: {
-            type: 'toggle-chat-type',
-            isGroupChat: isGroupChat,
-            participants: participants
-          }
-        }, '*');
+          // For 1:1 chat, we need to generate a name using Llama
+          // First send the toggle message, then wait for profile info
+          parent.postMessage({
+            pluginMessage: {
+              type: 'toggle-chat-type',
+              isGroupChat: false,
+              participants: 2
+            }
+          }, '*');
+        }
       });
     });
 
@@ -941,6 +1050,9 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
       const msg = event.data.pluginMessage;
       if (!msg) return;
 
+      // Debug: log all incoming messages
+      console.log(`[UI] Received message type: ${msg.type}`, msg);
+
       if (msg.type === 'structure-analyzed') {
         currentStructure = msg.structure;
         patternDescription = msg.patternDescription;
@@ -966,6 +1078,35 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
 const chatType = isGroupChat ? '👥 Group Chat (3 people)' : '💬 1:1 Chat';
         showStatus(`Found ${msg.totalBubbles} bubbles — ${chatType}`, 'info');
         // Don't auto-hide - keep the status visible so user knows their selection is valid
+      } else if (msg.type === 'generate-header-name') {
+        // Received request from code.js to generate a name from username
+        const username = msg.username;
+        console.log(`[UI] Received request to generate name for username: ${username}`);
+
+        try {
+          const generatedName = await generateNameFromUsername(username);
+          console.log(`[UI] Generated name: ${generatedName}, sending back to code.js`);
+
+          // Send the generated name back to code.js
+          parent.postMessage({
+            pluginMessage: {
+              type: 'update-header-text',
+              username: username,
+              generatedName: generatedName
+            }
+          }, '*');
+        } catch (error) {
+          console.error('[UI] Error generating name:', error);
+          // Use fallback name
+          const fallbackName = createFallbackName(username);
+          parent.postMessage({
+            pluginMessage: {
+              type: 'update-header-text',
+              username: username,
+              generatedName: fallbackName
+            }
+          }, '*');
+        }
       } else if (msg.type === 'success') {
         showStatus(msg.message || 'Conversation generated successfully!', 'success');
         generateBtn.disabled = false;

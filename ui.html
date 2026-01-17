@@ -314,6 +314,87 @@
       flex-direction: column;
       flex: 1;
     }
+
+    /* Chat Type Radio Buttons */
+    .chat-type-row {
+      display: flex;
+      gap: 16px;
+    }
+
+    .radio-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      color: #333;
+    }
+
+    .radio-label input[type="radio"] {
+      display: none;
+    }
+
+    .radio-custom {
+      width: 16px;
+      height: 16px;
+      border: 2px solid #ccc;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .radio-label input[type="radio"]:checked + .radio-custom {
+      border-color: #4A5DF9;
+    }
+
+    .radio-label input[type="radio"]:checked + .radio-custom::after {
+      content: '';
+      width: 8px;
+      height: 8px;
+      background: #4A5DF9;
+      border-radius: 50%;
+    }
+
+    .radio-text {
+      font-weight: 500;
+    }
+
+    /* Group Size Dropdown */
+    .group-size-container {
+      margin-top: 8px;
+    }
+
+    .dropdown-label {
+      display: block;
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    .group-size-select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 12px;
+      font-family: 'SF Pro Text', sans-serif;
+      color: #333;
+      background: #f5f5f5;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+
+    .group-size-select:focus {
+      outline: none;
+      border-color: #4A5DF9;
+      background-color: rgba(74, 93, 249, 0.05);
+    }
   </style>
 </head>
 <body>
@@ -321,6 +402,32 @@
     <div class="banner-wrapper">
       <img id="header-img" src="">
       </div>
+
+      <!-- Chat Type Selection -->
+      <div class="section">
+        <span class="section-label">Chat type</span>
+        <div class="chat-type-row">
+          <label class="radio-label">
+            <input type="radio" name="chat-type" value="1:1" checked>
+            <span class="radio-custom"></span>
+            <span class="radio-text">1:1 Chat</span>
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="chat-type" value="group">
+            <span class="radio-custom"></span>
+            <span class="radio-text">Group Chat</span>
+          </label>
+        </div>
+        <div id="group-size-container" class="group-size-container" style="display: none;">
+          <label class="dropdown-label">Number of people</label>
+          <select id="group-size-select" class="group-size-select">
+            <option value="3" selected>3 people</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
       <div class="section">
     <span class="section-label">Select conversation topic</span>
     <div class="topic-grid">
@@ -400,7 +507,7 @@
 
 <script src="headerImage.js"></script>
   <script>
-    // Set header image from external file
+// Set header image from external file
     document.getElementById('header-img').src = HEADER_IMAGE;
 
     // ============================================================================
@@ -415,12 +522,56 @@
     let patternDescription = '';
     let isGroupChat = false;
     let participants = 2;
+    let userSelectedChatType = null; // Track user's manual selection
 
     // DOM elements
     const topicBtns = document.querySelectorAll('.topic-btn');
     const generateBtn = document.getElementById('generate-btn');
     const statusBar = document.getElementById('status-bar');
     const customTopicInput = document.getElementById('custom-topic-input');
+    const chatTypeRadios = document.querySelectorAll('input[name="chat-type"]');
+    const groupSizeContainer = document.getElementById('group-size-container');
+    const groupSizeSelect = document.getElementById('group-size-select');
+
+    // Chat type radio button handlers
+    chatTypeRadios.forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        const selectedValue = e.target.value;
+        userSelectedChatType = selectedValue;
+
+        if (selectedValue === 'group') {
+          groupSizeContainer.style.display = 'block';
+          isGroupChat = true;
+          participants = parseInt(groupSizeSelect.value);
+        } else {
+          groupSizeContainer.style.display = 'none';
+          isGroupChat = false;
+          participants = 2;
+        }
+
+        // Send message to plugin to toggle the component property
+        parent.postMessage({
+          pluginMessage: {
+            type: 'toggle-chat-type',
+            isGroupChat: isGroupChat,
+            participants: participants
+          }
+        }, '*');
+      });
+    });
+
+    // Group size dropdown handler
+    groupSizeSelect.addEventListener('change', (e) => {
+      participants = parseInt(e.target.value);
+
+      // Send message to plugin to update participant count
+      parent.postMessage({
+        pluginMessage: {
+          type: 'update-participants',
+          participants: participants
+        }
+      }, '*');
+    });
 
     // Topic prompts for Llama - 2 person version
     const topicPrompts2Person = {
@@ -797,7 +948,22 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
         participants = msg.participants || 2;
         updateGenerateButton();
 
-        const chatType = isGroupChat ? '👥 Group Chat (3 people)' : '💬 1:1 Chat';
+        // Sync the radio buttons with the detected chat type (only if user hasn't manually selected)
+        if (userSelectedChatType === null) {
+          const oneToOneRadio = document.querySelector('input[name="chat-type"][value="1:1"]');
+          const groupRadio = document.querySelector('input[name="chat-type"][value="group"]');
+
+          if (isGroupChat) {
+            groupRadio.checked = true;
+            groupSizeContainer.style.display = 'block';
+            groupSizeSelect.value = String(participants);
+          } else {
+            oneToOneRadio.checked = true;
+            groupSizeContainer.style.display = 'none';
+          }
+        }
+
+const chatType = isGroupChat ? '👥 Group Chat (3 people)' : '💬 1:1 Chat';
         showStatus(`Found ${msg.totalBubbles} bubbles — ${chatType}`, 'info');
         // Don't auto-hide - keep the status visible so user knows their selection is valid
       } else if (msg.type === 'success') {

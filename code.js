@@ -264,6 +264,67 @@ function setProfileType(profilePhotoNode, typeValue) {
 }
 
 /**
+ * Find ALL Person components with Handle property in the entire component tree
+ * This does a fresh deep search to get current node references
+ */
+function findAllPersonComponentsWithHandle(rootNode) {
+  const personComponents = [];
+
+  function search(node, depth = 0) {
+    if (depth > 25) return;
+
+    const name = node.name.toLowerCase();
+    const nodeType = node.type;
+
+    // Look for Person component with Handle property
+    if ((name.includes('person') || name.includes('people profile')) && nodeType === 'INSTANCE') {
+      try {
+        const props = node.componentProperties;
+        const propKeys = Object.keys(props);
+
+        if (propKeys.some(k => k.toLowerCase().includes('handle'))) {
+          console.log(`[FIND ALL PERSONS] Found Person with Handle: "${node.name}" at depth ${depth}`);
+          personComponents.push(node);
+        }
+      } catch (e) {
+        // Skip nodes we can't read
+      }
+    }
+
+    if ('children' in node) {
+      for (const child of node.children) {
+        search(child, depth + 1);
+      }
+    }
+  }
+
+  search(rootNode);
+  return personComponents;
+}
+
+/**
+ * Check if a node is inside the Header Module
+ */
+function isNodeInHeader(node) {
+  let parent = node.parent;
+  let depth = 0;
+
+  while (parent && depth < 20) {
+    const name = parent.name.toLowerCase();
+    if (name.includes('header')) {
+      return true;
+    }
+    if (parent.type === 'PAGE' || parent.type === 'DOCUMENT') {
+      break;
+    }
+    parent = parent.parent;
+    depth++;
+  }
+
+  return false;
+}
+
+/**
  * Find all recipient Chat blocks in a Chat Thread
  */
 function findRecipientChatBlocks(threadNode) {
@@ -1197,6 +1258,10 @@ if (msg.type === 'toggle-chat-type') {
           console.log(`[DEBUG] Setting properties:`, propertiesToSet);
           node.setProperties(propertiesToSet);
 
+          // IMPORTANT: Wait for Figma to process the variant change before modifying children
+          // This ensures the component instances are fully swapped before we try to set their properties
+          await new Promise(resolve => setTimeout(resolve, 50));
+
           // ================================================================
           // PROFILE PHOTO SWAPPING (for Group Chat)
           // ================================================================
@@ -1345,21 +1410,35 @@ console.log(`[PROFILE] msg.isGroupChat = ${msg.isGroupChat}`);
             // ================================================================
             console.log('[PROFILE] Setting profile photos on Chat blocks for 1:1...');
 
-            // Find all recipient Chat blocks
+            // Wait a bit longer for Figma to complete the variant swap
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Find ALL Person components with Handle property in the entire component
+            // This ensures we get fresh references after the variant swap
+            const allPersonComponents = findAllPersonComponentsWithHandle(node);
+            console.log(`[PROFILE] Found ${allPersonComponents.length} Person components with Handle in entire component`);
+
+            // Filter to only those in recipient blocks (not in Header)
+            let personIndex = 0;
+            for (const personNode of allPersonComponents) {
+              // Skip if this is in the Header (we already set the Header Person)
+              const isInHeader = isNodeInHeader(personNode);
+              if (isInHeader) {
+                console.log(`[PROFILE] Skipping Person in Header: "${personNode.name}"`);
+                continue;
+              }
+
+              console.log(`[PROFILE] Setting Chat Person ${personIndex} to "${profilesAssigned.B}"`);
+              setProfileVariant(personNode, profilesAssigned.B);
+              personIndex++;
+            }
+
+            // Set Admin text on recipient blocks
             const recipientBlocks = findRecipientChatBlocks(node);
-            console.log(`[PROFILE] Found ${recipientBlocks.length} recipient Chat blocks`);
+            console.log(`[PROFILE] Found ${recipientBlocks.length} recipient Chat blocks for admin text`);
 
             for (let i = 0; i < recipientBlocks.length; i++) {
               const block = recipientBlocks[i];
-
-              // Find profile photo component within the block
-              const blockProfilePhoto = findProfileInBlock(block);
-              if (blockProfilePhoto) {
-                console.log(`[PROFILE] Setting Chat block ${i} to "${profilesAssigned.B}"`);
-                setProfileVariant(blockProfilePhoto, profilesAssigned.B);
-              }
-
-              // Set Admin text (username) - for 1:1, all recipients are Person B
               const adminTextNode = findAdminText(block);
               if (adminTextNode) {
                 console.log(`[ADMIN TEXT] Setting username to "${profilesAssigned.B}" in Chat block ${i}`);

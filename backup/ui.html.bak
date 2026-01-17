@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'SF Pro Text', sans-serif;
+      font-size: 12px;
+      color: #333;
+      padding: 0;
+      background: #ffffff;
+    }
+
+    h1 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #1a1a1a;
+    }
+
+    .subtitle {
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 12px 16px 16px 16px;
+    }
+
+    .banner-wrapper {
+      width: 100%;
+      max-width: 320px;
+      margin-bottom: 12px;
+      overflow: hidden;
+      margin-left: -16px;
+      margin-right: -16px;
+      margin-top: -12px;
+      width: calc(100% + 32px);
+    }
+
+    .banner-wrapper img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #666;
+    }
+
+    .topic-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-left: -16px;
+      margin-right: -16px;
+      padding-left: 16px;
+      padding-right: 16px;
+      width: calc(100% + 32px);
+    }
+
+    .topic-btn {
+      background: #f5f5f5;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      padding: 12px 10px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: center;
+      color: #333;
+    }
+
+    .topic-btn:hover {
+      background: #ebebeb;
+    }
+
+    .topic-btn.selected {
+      background: rgba(74, 93, 249, 0.1);
+      border-color: #4A5DF9;
+      color: #4A5DF9;
+    }
+
+    .topic-btn .emoji {
+      display: block;
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+
+    .custom-topic-input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 12px;
+      font-family: 'SF Pro Text', sans-serif;
+      color: #333;
+      background: #f5f5f5;
+      resize: none;
+      transition: all 0.15s ease;
+      box-sizing: border-box;
+    }
+
+    .custom-topic-input:focus {
+      outline: none;
+      border-color: #4A5DF9;
+      background: rgba(74, 93, 249, 0.05);
+    }
+
+    .custom-topic-input::placeholder {
+      color: #888;
+      font-style: italic;
+    }
+
+    .custom-topic-input.active {
+      border-color: #4A5DF9;
+      background: rgba(74, 93, 249, 0.05);
+    }
+
+    .button-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    button {
+      flex: 1;
+      background: #4A5DF9;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #3a4dc9;
+    }
+
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    button.secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    button.secondary:hover {
+      background: #e0e0e0;
+    }
+
+    .status-bar {
+      display: none;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .status-bar.success {
+      display: block;
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-bar.error {
+      display: block;
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .status-bar.info {
+      display: block;
+      background: rgba(74, 93, 249, 0.1);
+      color: #4A5DF9;
+    }
+
+    .divider {
+      height: 1px;
+      background: #e0e0e0;
+      margin: 4px 0;
+    }
+
+    .info-text {
+      font-size: 10px;
+      color: #888;
+      font-style: italic;
+    }
+
+    .api-link {
+      color: #18A0FB;
+      text-decoration: none;
+      font-size: 10px;
+    }
+
+    .api-link:hover {
+      text-decoration: underline;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 0.8s linear infinite;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 20px;
+      color: #888;
+    }
+
+    .empty-state .icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .footer {
+      padding: 16px;
+      font-size: 12px;
+      line-height: 16.8px;
+      color: #ffffff;
+      background: #212328;
+      margin-top: 8px;
+      margin-left: -16px;
+      margin-right: -16px;
+      margin-bottom: -16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-text {
+      flex: 1;
+    }
+
+    .footer a {
+      color: #18A0FB;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    .share-btn {
+      display: inline-flex;
+      max-width: 80px;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      background: #f0f0f0;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 8px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      color: #4A5DF9;
+    }
+
+    .share-btn:hover {
+      background: #e0e0e0;
+    }
+
+    .share-btn svg {
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0;
+    }
+
+    .version-tag {
+      font-size: 10px;
+      color: #666;
+      opacity: 0.7;
+      display: block;
+      margin-top: 4px;
+    }
+
+    .footer-left {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    /* Chat Type Radio Buttons */
+    .chat-type-row {
+      display: flex;
+      gap: 16px;
+    }
+
+    .radio-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      color: #333;
+    }
+
+    .radio-label input[type="radio"] {
+      display: none;
+    }
+
+    .radio-custom {
+      width: 16px;
+      height: 16px;
+      border: 2px solid #ccc;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .radio-label input[type="radio"]:checked + .radio-custom {
+      border-color: #4A5DF9;
+    }
+
+    .radio-label input[type="radio"]:checked + .radio-custom::after {
+      content: '';
+      width: 8px;
+      height: 8px;
+      background: #4A5DF9;
+      border-radius: 50%;
+    }
+
+    .radio-text {
+      font-weight: 500;
+    }
+
+    /* Group Size Dropdown */
+    .group-size-container {
+      margin-top: 8px;
+    }
+
+    .dropdown-label {
+      display: block;
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    .group-size-select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 12px;
+      font-family: 'SF Pro Text', sans-serif;
+      color: #333;
+      background: #f5f5f5;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+
+    .group-size-select:focus {
+      outline: none;
+      border-color: #4A5DF9;
+      background-color: rgba(74, 93, 249, 0.05);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="banner-wrapper">
+      <img id="header-img" src="">
+      </div>
+
+      <!-- Chat Type Selection -->
+      <div class="section">
+        <span class="section-label">Chat type</span>
+        <div class="chat-type-row">
+          <label class="radio-label">
+            <input type="radio" name="chat-type" value="1:1" checked>
+            <span class="radio-custom"></span>
+            <span class="radio-text">1:1 Chat</span>
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="chat-type" value="group">
+            <span class="radio-custom"></span>
+            <span class="radio-text">Group Chat</span>
+          </label>
+        </div>
+        <div id="group-size-container" class="group-size-container" style="display: none;">
+          <label class="dropdown-label">Number of people</label>
+          <select id="group-size-select" class="group-size-select">
+            <option value="3" selected>3 people</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="section">
+    <span class="section-label">Select conversation topic</span>
+    <div class="topic-grid">
+        <button class="topic-btn" data-topic="sports">
+          <span class="emoji">🏀</span>
+          Sports
+        </button>
+        <button class="topic-btn" data-topic="highschool">
+          <span class="emoji">🎒</span>
+          High School
+        </button>
+        <button class="topic-btn" data-topic="genz">
+          <span class="emoji">✨</span>
+          Gen-Z
+        </button>
+        <button class="topic-btn" data-topic="travel">
+          <span class="emoji">✈️</span>
+          Travel
+        </button>
+        <button class="topic-btn" data-topic="events">
+          <span class="emoji">🎉</span>
+          Events
+        </button>
+        <button class="topic-btn" data-topic="business">
+          <span class="emoji">💼</span>
+          Business
+        </button>
+        <button class="topic-btn" data-topic="creators">
+          <span class="emoji">🎬</span>
+          Creators
+        </button>
+        <button class="topic-btn" data-topic="family">
+          <span class="emoji">👨‍👩‍👧</span>
+          Friends & Family
+        </button>
+    </div>
+
+    <div class="section" style="margin-top: 10px;">
+      <span class="section-label">Custom conversation topic</span>
+      <textarea
+        id="custom-topic-input"
+        class="custom-topic-input"
+        placeholder="Describe your own conversation topic..."
+        rows="2"
+      ></textarea>
+    </div>
+
+    <div id="status-bar" class="status-bar"></div>
+
+    <div class="button-row">
+      <button id="generate-btn" disabled>Generate conversation</button>
+    </div>
+
+    <div class="footer">
+      <div class="footer-left">
+        <span class="footer-text">Questions or feedback? <br>Reach out to <a href="https://www.internalfb.com/profile/view/6709430" target="_blank" style="color: #4A5DF9; text-decoration: none;">Alexa Michael</a></span>
+        <span class="version-tag">v2.0</span>
+      </div>
+      <button class="share-btn" id="share-btn">Share
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+          <mask id="mask0_link" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="12" height="12">
+            <rect width="12" height="12" fill="url(#pattern0_link)"/>
+          </mask>
+          <g mask="url(#mask0_link)">
+            <rect width="12" height="12" fill="currentColor"/>
+          </g>
+          <defs>
+            <pattern id="pattern0_link" patternContentUnits="objectBoundingBox" width="1" height="1">
+              <use xlink:href="#image0_link" transform="scale(0.0416667)"/>
+            </pattern>
+            <image id="image0_link" width="24" height="24" preserveAspectRatio="none" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAGKADAAQAAAABAAAAGAAAAADiNXWtAAABuUlEQVRIDc3VsUpDQRAFULVSCFgYbRQtbCwFfyWV/oKVP2Yh6YSUWqbwGzRgYyVY6T3oCy8vm8eqhV64vOzs7szuzJ3N2to/w3rOMwqvw8fwLZyFN+F5uBH+GAfZeRe+93CauePw2zjJDifm/CW8Cs/CQXgaXobPoXnfbwXZzoanr82TfPfDEvZivA0FcZPqdB1l8Ws4DjfDPgjS3ERNqrFVvfIzXW6h8L/CTnbL/bDjRU0EoK4i5Fxa+rCbyYeQI0HaUHh2El4CtSionK9KS9u5IG7SBnUJQHULoPNGigpaQte5cRckLIBmnEOH3ocmJmFJLTXOSVif8KPj5zBgNFnSeY1zh3I4fnS8Q8/hOiZcr4sa5/aMQz6kWboX0ORegdpQwEYtvoKVQBCEQSCEsgSSEp3E2iBB9j7nzfrD/CDxImaxcqRJ2hhmIEhXiu01Vb9vskoAzmqxqk+K+y9iFcBD5cHqA7UoqJxLSxU8rdNQEE/uqiAkPPlap6Arc565JfiTaJ5aX+lSk0FIXSSsTxyC6opqib0XgjQ34ajE+9iXdN7rtTMpXWqi8NRFwk6sGUfhQodm/Lf4AEl1fHWf7Ej1AAAAAElFTkSuQmCC"/>
+          </defs>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+<script src="headerImage.js"></script>
+  <script>
+// Set header image from external file
+    document.getElementById('header-img').src = HEADER_IMAGE;
+
+    // ============================================================================
+    // EMBEDDED LLAMA API KEY
+    // Get your key from: https://llama.developer.meta.com/api-keys/ (requires VPN)
+    // ============================================================================
+    const LLAMA_API_KEY = 'LLM|1428288808968195|FSBSdnVSLJIadzuqqUCP-sjT91U';
+
+    let selectedTopic = null;
+    let customTopic = null;
+    let currentStructure = null;
+    let patternDescription = '';
+    let isGroupChat = false;
+    let participants = 2;
+    let userSelectedChatType = null; // Track user's manual selection
+
+    // DOM elements
+    const topicBtns = document.querySelectorAll('.topic-btn');
+    const generateBtn = document.getElementById('generate-btn');
+    const statusBar = document.getElementById('status-bar');
+    const customTopicInput = document.getElementById('custom-topic-input');
+    const chatTypeRadios = document.querySelectorAll('input[name="chat-type"]');
+    const groupSizeContainer = document.getElementById('group-size-container');
+    const groupSizeSelect = document.getElementById('group-size-select');
+
+    // Chat type radio button handlers
+    chatTypeRadios.forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        const selectedValue = e.target.value;
+        userSelectedChatType = selectedValue;
+
+        if (selectedValue === 'group') {
+          groupSizeContainer.style.display = 'block';
+          isGroupChat = true;
+          participants = parseInt(groupSizeSelect.value);
+        } else {
+          groupSizeContainer.style.display = 'none';
+          isGroupChat = false;
+          participants = 2;
+        }
+
+        // Send message to plugin to toggle the component property
+        parent.postMessage({
+          pluginMessage: {
+            type: 'toggle-chat-type',
+            isGroupChat: isGroupChat,
+            participants: participants
+          }
+        }, '*');
+      });
+    });
+
+    // Group size dropdown handler
+    groupSizeSelect.addEventListener('change', (e) => {
+      participants = parseInt(e.target.value);
+
+      // Send message to plugin to update participant count
+      parent.postMessage({
+        pluginMessage: {
+          type: 'update-participants',
+          participants: participants
+        }
+      }, '*');
+    });
+
+    // Topic prompts for Llama - 2 person version
+    const topicPrompts2Person = {
+      sports: "two friends who are passionate sports fans discussing recent games, players, and upcoming matches. They use casual sports terminology and share excitement about their team.",
+      highschool: "two high school students texting about school, homework, classes, social events, and typical teenage life. Use casual teen language, abbreviations, and relatable school scenarios.",
+      genz: "two Gen-Z friends using current internet slang and culture references. Include terms like 'no cap', 'fr', 'lowkey', 'slay', 'hits different', 'living rent free', 'ate that', 'understood the assignment', etc.",
+      travel: "two friends where one is traveling and sharing their experiences while the other responds with excitement and questions. Include mentions of places, food, and travel experiences.",
+      events: "two friends planning to attend or discussing an event like a party, concert, or social gathering. Cover logistics, excitement, outfits, and who else is attending.",
+      business: "two professional colleagues discussing work matters like meetings, projects, deadlines, and office dynamics. Use professional but friendly business language.",
+      creators: "two content creators discussing videos, engagement metrics, editing, collaborations, brand deals, and the creator economy. Reference platforms like TikTok, Instagram, YouTube.",
+      family: "family members or close friends catching up about family gatherings, relatives, dinner plans, health check-ins, and everyday life updates. Warm and caring tone."
+    };
+
+    // Topic prompts for Llama - 3 person GROUP CHAT version
+    const topicPrompts3Person = {
+      sports: "THREE friends in a group chat who are passionate sports fans. All messages should be addressed to the ENTIRE GROUP, not just one person. They discuss games, players, and matches while reacting to each other's takes and building excitement together.",
+      highschool: "THREE high school students in a group chat texting about school life. All messages should be addressed to the ENTIRE GROUP. They share homework struggles, gossip, and make plans together using casual teen language.",
+      genz: "THREE Gen-Z friends in a group chat using current slang. All messages should be addressed to the ENTIRE GROUP. They hype each other up, react to shared content, and use terms like 'no cap', 'fr', 'lowkey', 'slay', etc.",
+      travel: "THREE friends in a group chat discussing travel. All messages should be addressed to the ENTIRE GROUP. One shares travel experiences while the others react, ask questions, and make future plans together.",
+      events: "THREE friends in a group chat planning an event together. All messages should be addressed to the ENTIRE GROUP. They coordinate logistics, discuss outfits, and build excitement as a trio.",
+      business: "THREE colleagues in a work group chat. All messages should be addressed to the ENTIRE GROUP. They coordinate on projects, share updates, and align on deliverables together.",
+      creators: "THREE content creators in a group chat. All messages should be addressed to the ENTIRE GROUP. They share ideas, react to each other's content, and discuss collaborations as a team.",
+      family: "THREE family members or close friends in a group chat. All messages should be addressed to the ENTIRE GROUP. They share updates, coordinate plans, and check in on everyone with warmth."
+    };
+
+    // Topic button selection
+    topicBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        topicBtns.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedTopic = btn.dataset.topic;
+        // Clear custom topic when selecting a preset
+        customTopic = null;
+        customTopicInput.value = '';
+        customTopicInput.classList.remove('active');
+        updateGenerateButton();
+      });
+    });
+
+    // Custom topic input handling
+    customTopicInput.addEventListener('input', () => {
+      const value = customTopicInput.value.trim();
+      if (value.length > 0) {
+        // Deselect preset topics when typing custom topic
+        topicBtns.forEach(b => b.classList.remove('selected'));
+        selectedTopic = null;
+        customTopic = value;
+        customTopicInput.classList.add('active');
+      } else {
+        customTopic = null;
+        customTopicInput.classList.remove('active');
+      }
+      updateGenerateButton();
+    });
+
+    // Also handle focus/blur for better UX
+    customTopicInput.addEventListener('focus', () => {
+      if (customTopicInput.value.trim().length > 0) {
+        customTopicInput.classList.add('active');
+      }
+    });
+
+    function updateGenerateButton() {
+      const hasTopicSelected = selectedTopic || (customTopic && customTopic.length > 0);
+      generateBtn.disabled = !(hasTopicSelected && currentStructure && currentStructure.length > 0);
+    }
+
+    // Request structure analysis when plugin loads
+    function requestStructureAnalysis() {
+      parent.postMessage({
+        pluginMessage: { type: 'analyze-structure' }
+      }, '*');
+    }
+
+    // Timeout duration for API calls (30 seconds)
+    const API_TIMEOUT_MS = 30000;
+
+    // Custom error class for better error categorization
+    class LlamaAPIError extends Error {
+      constructor(message, type, details = null) {
+        super(message);
+        this.name = 'LlamaAPIError';
+        this.type = type;
+        this.details = details;
+      }
+    }
+
+    // Fetch with timeout wrapper
+    async function fetchWithTimeout(url, options, timeoutMs = API_TIMEOUT_MS) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        const response = await fetch(url, {
+          ...options,
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        return response;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          throw new LlamaAPIError(
+            `Request timed out after ${timeoutMs / 1000} seconds. Please try again.`,
+            'timeout'
+          );
+        }
+        throw error;
+      }
+    }
+
+    // Parse and categorize API errors
+    function parseAPIError(status, errorText) {
+      switch (status) {
+        case 401:
+          return new LlamaAPIError('Invalid API key. Please check your Llama API key.', 'auth', errorText);
+        case 403:
+          return new LlamaAPIError('Access forbidden. Your API key may not have permission.', 'auth', errorText);
+        case 429:
+          return new LlamaAPIError('Rate limit exceeded. Please wait and try again.', 'rate_limit', errorText);
+        case 500:
+        case 502:
+        case 503:
+        case 504:
+          return new LlamaAPIError('Llama API server error. Please try again.', 'server', errorText);
+        default:
+          return new LlamaAPIError(`API error (${status}): ${errorText.substring(0, 100)}`, 'unknown', errorText);
+      }
+    }
+
+    // Call Llama API to generate conversation based on structure
+    async function generateConversationWithLlama(topic, structure, isCustomTopic = false) {
+      // Determine the topic prompt based on whether it's custom or preset
+      let topicPrompt;
+      if (isCustomTopic) {
+        // For custom topics, create a dynamic prompt based on user input
+        topicPrompt = isGroupChat
+          ? `THREE friends in a group chat discussing: ${topic}. All messages should be addressed to the ENTIRE GROUP. They engage naturally with each other about this topic, sharing thoughts, reactions, and building on each other's points.`
+          : `two friends texting about: ${topic}. They engage naturally with each other about this topic, sharing thoughts, reactions, and building on each other's points with casual, authentic messaging style.`;
+      } else {
+        // Use preset topic prompts
+        topicPrompt = isGroupChat ? topicPrompts3Person[topic] : topicPrompts2Person[topic];
+      }
+
+      // Build the exact message pattern from structure with person labels
+      const messagePattern = structure.map((s, i) => {
+        return `Message ${i + 1}: Person ${s.person}`;
+      }).join('\n');
+
+      const groupChatNote = isGroupChat
+          ? `This is a GROUP CHAT with 3 people:
+- Person A = The SENDER (you/the main protagonist). Purple bubbles on the RIGHT.
+- Person B = First recipient (friend #1). Messages on the LEFT with profile photo.
+- Person C = Second recipient (friend #2). Messages on the LEFT with different profile photo.
+
+🚨 CRITICAL GROUP CHAT LANGUAGE RULES - YOU MUST FOLLOW THESE:
+1. NEVER use singular "you" - ALWAYS use "you guys", "you both", "y'all", "everyone", or "we"
+2. Every message should feel like it's addressed to MULTIPLE people, not just one person
+3. Make statements that include everyone: "we should", "let's all", "are we", "who's down"
+4. React to the GROUP, not individuals: "omg you guys", "wait both of you", "lol we're all"
+
+WRONG examples (do NOT use these):
+- "Are you free this weekend?" ❌
+- "What do you think?" ❌
+- "Don't forget your wallet" ❌
+
+CORRECT examples (USE these patterns):
+- "Are you guys free this weekend?" ✓
+- "What do y'all think?" ✓
+- "Nobody forget their wallets lol" ✓
+- "We should totally do that" ✓
+- "Who's down for Sunday?" ✓
+- "Let's all meet at 2" ✓
+- "Omg you guys this is perfect" ✓`
+          : `This is a 1:1 chat between Person A (sender/you) and Person B (recipient/the other person).`;
+
+      const systemPrompt = `You are a conversation generator creating a realistic text message conversation between ${topicPrompt}
+
+${groupChatNote}
+
+CRITICAL: You must generate messages in EXACTLY this order and speaker pattern:
+${messagePattern}
+
+Rules:
+- Follow the EXACT speaker pattern above - each message MUST come from the specified person
+- Person A is the SENDER (you/main character) - their messages are on the RIGHT
+- Person B is the FIRST RECIPIENT (friend #1) - their messages are on the LEFT
+- Person C is the SECOND RECIPIENT (friend #2, only in group chats) - their messages are on the LEFT
+- CRITICAL: Each person has their OWN perspective and voice. B and C should NOT say things that only A would know or say
+- ALWAYS use sentence case (capitalize only the first letter of each message, not every word)
+- Vary message lengths naturally: some very short (1-3 words like "Ok", "Lol", "Yeah"), some medium (5-10 words), some longer (10-20 words)
+- When the SAME PERSON sends multiple messages in a row, these are CONSECUTIVE TEXTS from that person (like when someone sends multiple quick texts before getting a reply). They should NOT be responding to themselves - they are continuing their thought, adding info, or reacting to the previous speaker's message.
+- ${isGroupChat ? 'CRITICAL FOR GROUP CHAT: Use group language when addressing others - say "you guys", "you both", "y\'all", "everyone", or "we" instead of singular "you". This is a flowing 3-way conversation where everyone talks TO the group. Each person should react to what was LAST said by a DIFFERENT person, bringing new information or reactions to keep the conversation moving forward.' : 'Keep it authentic to how people actually text'}
+- Don't use quotation marks around messages
+- Limit emojis (max 2-3 in the entire conversation)
+- Messages should form a coherent, flowing conversation where each message responds to or builds on previous messages from OTHER people
+
+Output format: Return ONLY a JSON array of ${structure.length} message strings in order. Example format:
+["First message here", "Second message here", "Third message here"]`;
+
+      const userPrompt = `Generate exactly ${structure.length} messages following the pattern. Topic: ${topic}. ${isGroupChat ? 'This is a 3-person group chat.' : ''} Return only the JSON array.`;
+
+      try {
+        const apiUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://api.llama.com/v1/chat/completions');
+
+        const response = await fetchWithTimeout(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LLAMA_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'Llama-4-Maverick-17B-128E-Instruct-FP8',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ]
+          })
+        });
+
+        if (!response.ok) {
+          let errorText = '';
+          try {
+            errorText = await response.text();
+          } catch (e) {
+            errorText = 'Unable to read error response';
+          }
+          throw parseAPIError(response.status, errorText);
+        }
+
+        let data;
+        try {
+          data = await response.json();
+        } catch (e) {
+          throw new LlamaAPIError('Failed to parse API response.', 'parse', e.message);
+        }
+
+        // Extract the text from Llama response
+        let responseText = '';
+        if (data.completion_message && data.completion_message.content) {
+          responseText = data.completion_message.content.text || data.completion_message.content;
+        } else if (data.choices && data.choices[0]) {
+          responseText = data.choices[0].message.content;
+        } else if (data.error) {
+          throw new LlamaAPIError(`Llama API error: ${data.error.message || data.error}`, 'server', data.error);
+        }
+
+        if (!responseText) {
+          throw new LlamaAPIError('Empty response from Llama API.', 'parse', JSON.stringify(data));
+        }
+
+        // Parse the JSON array from the response
+        // First, try to extract JSON from markdown code blocks if present
+        let cleanedResponse = responseText;
+
+        // Remove markdown code block wrappers (```json ... ``` or ``` ... ```)
+        const codeBlockMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (codeBlockMatch) {
+          cleanedResponse = codeBlockMatch[1].trim();
+        }
+
+        const jsonMatch = cleanedResponse.match(/\[[\s\S]*\]/);
+        if (!jsonMatch) {
+          console.error('Raw API response:', responseText);
+          throw new LlamaAPIError('Could not find conversation array in response.', 'parse', responseText);
+        }
+
+        let messages;
+        try {
+          // First attempt: direct parse
+          messages = JSON.parse(jsonMatch[0]);
+        } catch (e) {
+          // Second attempt: sanitize common issues
+          try {
+            let sanitized = jsonMatch[0]
+              // Remove trailing commas before ] or }
+              .replace(/,\s*([\]}])/g, '$1')
+              // Fix unescaped newlines in strings
+              .replace(/([^\\])\\n/g, '$1\\\\n')
+              // Replace actual newlines in strings with spaces
+              .replace(/"([^"]*)\n([^"]*)"/g, '"$1 $2"');
+
+            messages = JSON.parse(sanitized);
+          } catch (e2) {
+            // Third attempt: extract individual strings manually
+            try {
+              const stringMatches = jsonMatch[0].match(/"([^"\\]*(\\.[^"\\]*)*)"/g);
+              if (stringMatches && stringMatches.length > 0) {
+                messages = stringMatches.map(s => s.slice(1, -1).replace(/\\"/g, '"'));
+              } else {
+                throw e2;
+              }
+            } catch (e3) {
+              console.error('Failed to parse JSON. Raw match:', jsonMatch[0]);
+              throw new LlamaAPIError(`Failed to parse conversation JSON. API returned: ${jsonMatch[0].substring(0, 200)}...`, 'parse', jsonMatch[0]);
+            }
+          }
+        }
+
+        if (!Array.isArray(messages) || messages.length === 0) {
+          throw new LlamaAPIError('Invalid conversation format received.', 'parse', JSON.stringify(messages));
+        }
+
+        // Ensure sentence case for all messages
+        return messages.map(text => {
+          const str = String(text).trim();
+          if (str.length === 0) return str;
+          return str.charAt(0).toUpperCase() + str.slice(1);
+        });
+
+      } catch (error) {
+        console.error('Llama API error:', error);
+
+        if (error instanceof LlamaAPIError) {
+          throw error;
+        }
+
+        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+          throw new LlamaAPIError('Network error. Please check your internet connection.', 'network', error.message);
+        }
+
+        if (error.message && error.message.includes('corsproxy')) {
+          throw new LlamaAPIError('CORS proxy service unavailable. Please try again later.', 'network', error.message);
+        }
+
+        throw new LlamaAPIError(error.message || 'An unexpected error occurred.', 'unknown', error);
+      }
+    }
+
+    // Generate button click handler
+    generateBtn.addEventListener('click', async () => {
+      const hasTopicSelected = selectedTopic || (customTopic && customTopic.length > 0);
+      if (!hasTopicSelected || !currentStructure) return;
+
+      generateBtn.disabled = true;
+      generateBtn.innerHTML = '<span class="loading-spinner"></span>Generating...';
+      showStatus('Analyzing structure and generating conversation...', 'info');
+
+      try {
+        // Determine which topic to use and whether it's custom
+        const topicToUse = customTopic || selectedTopic;
+        const isCustom = !!customTopic;
+        const messages = await generateConversationWithLlama(topicToUse, currentStructure, isCustom);
+
+        // Send the generated messages to the plugin
+        parent.postMessage({
+          pluginMessage: {
+            type: 'populate-conversation',
+            messages: messages
+          }
+        }, '*');
+      } catch (error) {
+        showStatus(`Error: ${error.message}`, 'error');
+        generateBtn.disabled = false;
+        generateBtn.textContent = 'Generate conversation';
+      }
+    });
+
+    // Share button
+    document.getElementById('share-btn').addEventListener('click', () => {
+      const pluginUrl = 'https://www.figma.com/community/plugin/1590428082327008419/ig-direct-chat-gen';
+      window.open(pluginUrl, '_blank');
+    });
+
+    // Handle messages from plugin
+    window.onmessage = async (event) => {
+      const msg = event.data.pluginMessage;
+      if (!msg) return;
+
+      if (msg.type === 'structure-analyzed') {
+        currentStructure = msg.structure;
+        patternDescription = msg.patternDescription;
+        isGroupChat = msg.isGroupChat || false;
+        participants = msg.participants || 2;
+        updateGenerateButton();
+
+        // Sync the radio buttons with the detected chat type (only if user hasn't manually selected)
+        if (userSelectedChatType === null) {
+          const oneToOneRadio = document.querySelector('input[name="chat-type"][value="1:1"]');
+          const groupRadio = document.querySelector('input[name="chat-type"][value="group"]');
+
+          if (isGroupChat) {
+            groupRadio.checked = true;
+            groupSizeContainer.style.display = 'block';
+            groupSizeSelect.value = String(participants);
+          } else {
+            oneToOneRadio.checked = true;
+            groupSizeContainer.style.display = 'none';
+          }
+        }
+
+const chatType = isGroupChat ? '👥 Group Chat (3 people)' : '💬 1:1 Chat';
+        showStatus(`Found ${msg.totalBubbles} bubbles — ${chatType}`, 'info');
+        // Don't auto-hide - keep the status visible so user knows their selection is valid
+      } else if (msg.type === 'success') {
+        showStatus(msg.message || 'Conversation generated successfully!', 'success');
+        generateBtn.disabled = false;
+        generateBtn.textContent = 'Generate conversation';
+      } else if (msg.type === 'error') {
+        showStatus(msg.message || 'An error occurred', 'error');
+        generateBtn.disabled = false;
+        generateBtn.textContent = 'Generate conversation';
+
+        // If it's a selection error, clear structure
+        if (msg.message && msg.message.includes('select')) {
+          currentStructure = null;
+          updateGenerateButton();
+        }
+      }
+    };
+
+    function showStatus(message, type) {
+      statusBar.textContent = message;
+      statusBar.className = 'status-bar ' + type;
+    }
+
+    function hideStatus() {
+      statusBar.className = 'status-bar';
+    }
+
+    // Request initial structure analysis
+    requestStructureAnalysis();
+
+    // Re-analyze when window gains focus (user might have changed selection)
+    window.addEventListener('focus', () => {
+      requestStructureAnalysis();
+    });
+  </script>
+</body>
+</html>

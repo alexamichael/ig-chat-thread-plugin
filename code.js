@@ -64,6 +64,29 @@ const EMOJI_COMPONENT_KEYS = {
   'Face with Tears of Joy': '1a7453323b4a23490c0569f88f2e1ec33d832aca'
 };
 
+// ============================================================================
+// STICKER COMPONENT KEYS
+// Hard-coded component keys from the IGD-Sticker-Packs library
+// These are used to place stickers around chat messages
+// ============================================================================
+const STICKER_COMPONENT_KEYS = {
+  'CartoonVibes_Admiration512': '628de8fa4e1e0114f7aa6cfae5e370832cbd508e',
+  'PinkWink': '312777a0c4c5c59ef2d118dada0b5a8eac1b9309',
+  'Combine': '1409ce555e5fa5430b8b83921fa6052e1968ed61',
+  'CartoonVibes_LoveYouMeanIt': 'ae31c8c4d9ccf5391d4f4fda9b90e95cdf1788c6',
+  'cat': 'fca603b1a6b597035af408279e3f2f7c178afe75',
+  'CartoonVibes_ThinkingOfYou': '14670464c11092e65f8a1646037bd7385897cb92',
+  'HighFive': 'ff474ce0e2e68573eb4f64e9c9a70e5d197404bc',
+  'pinkCry': '11a649498d6ac0bf2622defc359a912b68f40345'
+};
+
+// Sticker rotation options (in degrees)
+const STICKER_ROTATIONS = [4, 8, 16, -4, -8, -16];
+
+// Sticker size range (width in pixels, height scales proportionally)
+const STICKER_SIZE_MIN = 70;
+const STICKER_SIZE_MAX = 100;
+
 /**
  * Pick N random unique profiles from the available variants
  */
@@ -2137,6 +2160,348 @@ function removeReactionsFromThread(threadNode) {
 }
 
 // ============================================================================
+// STICKERS: Place sticker components around chat messages
+// ============================================================================
+
+/**
+ * Pick a random sticker from available stickers, excluding already used ones
+ * @param {Set} usedStickers - Set of sticker names already used in this chat
+ * @returns {Object|null} - { name: string, key: string } or null if all stickers used
+ */
+function pickRandomSticker(usedStickers = new Set()) {
+  const stickerNames = Object.keys(STICKER_COMPONENT_KEYS);
+
+  // Filter out already used stickers
+  const availableStickers = stickerNames.filter(name => !usedStickers.has(name));
+
+  if (availableStickers.length === 0) {
+    console.log('[STICKER] All stickers have been used, no more available');
+    return null;
+  }
+
+  const randomIndex = Math.floor(Math.random() * availableStickers.length);
+  const name = availableStickers[randomIndex];
+  return { name, key: STICKER_COMPONENT_KEYS[name] };
+}
+
+/**
+ * Pick a random sticker size between min and max
+ * @returns {number} - Random size in pixels
+ */
+function pickRandomStickerSize() {
+  return STICKER_SIZE_MIN + Math.random() * (STICKER_SIZE_MAX - STICKER_SIZE_MIN);
+}
+
+/**
+ * Pick a random rotation from the available options
+ * @returns {number} - Rotation in degrees
+ */
+function pickRandomRotation() {
+  return STICKER_ROTATIONS[Math.floor(Math.random() * STICKER_ROTATIONS.length)];
+}
+
+/**
+ * Find the Chat thread window frame that contains the chat blocks
+ * This is needed to place stickers within the correct parent
+ */
+function findChatThreadWindow(threadNode) {
+  // Look for a frame that contains the chat content area
+  function search(node, depth = 0) {
+    if (depth > 5) return null;
+
+    const name = node.name.toLowerCase();
+
+    // Look for common names for the chat content area
+    if ((name.includes('chat thread') || name.includes('content') || name.includes('messages')) &&
+        (node.type === 'FRAME' || node.type === 'GROUP')) {
+      return node;
+    }
+
+    if ('children' in node) {
+      for (const child of node.children) {
+        const result = search(child, depth + 1);
+        if (result) return result;
+      }
+    }
+
+    return null;
+  }
+
+  // First try to find a specific chat content area
+  const contentArea = search(threadNode);
+  if (contentArea) return contentArea;
+
+  // Fallback to the thread node itself
+  return threadNode;
+}
+
+/**
+ * Apply stickers to chat messages with randomized spacing
+ * @param {SceneNode} threadNode - The chat thread node
+ * @param {number} percentage - Percentage level (25 = Some, 50 = Lots)
+ * @returns {Object} - { applied: number, total: number }
+ */
+async function applyStickersToThread(threadNode, percentage) {
+  console.log(`[STICKER] Applying stickers at ${percentage}%`);
+
+  // Get the bounds of the Chat thread component to constrain stickers
+  const threadBounds = threadNode.absoluteBoundingBox;
+  if (!threadBounds) {
+    console.log('[STICKER] No bounds for thread node');
+    return { applied: 0, total: 0 };
+  }
+  console.log(`[STICKER] Thread bounds: x=${threadBounds.x}, y=${threadBounds.y}, w=${threadBounds.width}, h=${threadBounds.height}`);
+
+  // Find all reactable chat components (same as reactions)
+  const allChatComponents = findAllReactableChatComponents(threadNode);
+
+  if (allChatComponents.length === 0) {
+    console.log('[STICKER] No chat components found');
+    return { applied: 0, total: 0 };
+  }
+
+  console.log(`[STICKER] Found ${allChatComponents.length} chat components`);
+
+  // Sort by vertical position
+  allChatComponents.sort((a, b) => {
+    const aY = a.absoluteTransform ? a.absoluteTransform[1][2] : 0;
+    const bY = b.absoluteTransform ? b.absoluteTransform[1][2] : 0;
+    return aY - bY;
+  });
+
+  // Determine spacing based on percentage
+  let baseInterval, variation;
+  if (percentage === 25) {
+    // "Some" - every 4-5 messages
+    baseInterval = 4;
+    variation = 2;
+  } else if (percentage === 50) {
+    // "Lots" - every 2-3 messages
+    baseInterval = 2;
+    variation = 2;
+  } else {
+    baseInterval = 3;
+    variation = 2;
+  }
+
+  // Select which messages get stickers
+  const selectedIndices = [];
+  let nextStickerIndex = Math.floor(Math.random() * 2);
+
+  while (nextStickerIndex < allChatComponents.length) {
+    selectedIndices.push(nextStickerIndex);
+    const interval = baseInterval + Math.floor(Math.random() * variation);
+    nextStickerIndex += interval;
+  }
+
+  console.log(`[STICKER] Selected ${selectedIndices.length} messages at indices: ${selectedIndices.join(', ')}`);
+
+  // Find the parent frame to add stickers to
+  // We need to add stickers as siblings to the chat components, or to a common parent
+  let stickerParent = threadNode;
+  if (threadNode.type === 'INSTANCE') {
+    // For instances, we can't add children directly
+    // We need to find a frame we can add to, or add to the page
+    stickerParent = threadNode.parent || figma.currentPage;
+  }
+
+  // Track which stickers have been used (no duplicates in same chat)
+  const usedStickers = new Set();
+
+  let appliedCount = 0;
+
+  for (const index of selectedIndices) {
+    const chatComponent = allChatComponents[index];
+
+    // Determine if this is a sender or recipient message
+    const isSender = isSenderNode(chatComponent) ||
+                     (chatComponent.parent && isSenderNode(chatComponent.parent));
+
+    // Pick a random sticker (excluding already used ones)
+    const sticker = pickRandomSticker(usedStickers);
+
+    // If no stickers left (all used), skip this message
+    if (!sticker) {
+      console.log(`[STICKER] No more unique stickers available, skipping message ${index}`);
+      continue;
+    }
+
+    // Mark this sticker as used
+    usedStickers.add(sticker.name);
+
+    console.log(`[STICKER] Placing "${sticker.name}" near message ${index} (${isSender ? 'sender' : 'recipient'})`);
+
+    try {
+      // Import the sticker component from the library
+      const stickerComponent = await figma.importComponentByKeyAsync(sticker.key);
+
+      if (!stickerComponent) {
+        console.log(`[STICKER] Failed to import component for "${sticker.name}"`);
+        continue;
+      }
+
+      // Create an instance of the sticker
+      const stickerInstance = stickerComponent.createInstance();
+
+      // Pick a random size between 70-100px
+      const stickerSize = pickRandomStickerSize();
+
+      // Scale to random size (height scales proportionally)
+      const originalWidth = stickerInstance.width;
+      const originalHeight = stickerInstance.height;
+      const scale = stickerSize / originalWidth;
+      const stickerHeight = originalHeight * scale;
+      stickerInstance.resize(stickerSize, stickerHeight);
+
+      console.log(`[STICKER] Size: ${stickerSize.toFixed(0)}px`);
+
+      // Get the chat component's position
+      const chatBounds = chatComponent.absoluteBoundingBox;
+      if (!chatBounds) {
+        console.log(`[STICKER] No bounds for chat component`);
+        stickerInstance.remove();
+        continue;
+      }
+
+      // Calculate sticker position
+      let stickerX, stickerY;
+
+      // Randomize vertical position: anywhere along the height of the chat bubble
+      const verticalOffset = Math.random() * (chatBounds.height - stickerSize * 0.5);
+      stickerY = chatBounds.y + verticalOffset;
+
+      // Randomize overlap: 50% chance to overlap the edge, 50% to be in margin
+      const shouldOverlap = Math.random() > 0.5;
+      const overlapAmount = shouldOverlap ? (stickerSize * 0.3) : 0; // 30% overlap
+      const marginOffset = 10 + Math.random() * 20; // 10-30px from edge
+
+      if (isSender) {
+        // Sender messages: sticker on LEFT margin
+        // Chat bubble is on the right side, so left margin is to the left of the bubble
+        stickerX = chatBounds.x - stickerSize - marginOffset + overlapAmount;
+      } else {
+        // Recipient messages: sticker on RIGHT margin
+        // Chat bubble is on the left side, so right margin is to the right of the bubble
+        stickerX = chatBounds.x + chatBounds.width + marginOffset - overlapAmount;
+      }
+
+      // ================================================================
+      // BOUNDS CHECKING: Ensure sticker stays within Chat thread bounds
+      // ================================================================
+      const minX = threadBounds.x;
+      const maxX = threadBounds.x + threadBounds.width - stickerSize;
+      const minY = threadBounds.y;
+      const maxY = threadBounds.y + threadBounds.height - stickerHeight;
+
+      // Clamp X position
+      if (stickerX < minX) {
+        console.log(`[STICKER] X position ${stickerX.toFixed(0)} below min ${minX.toFixed(0)}, clamping`);
+        stickerX = minX;
+      } else if (stickerX > maxX) {
+        console.log(`[STICKER] X position ${stickerX.toFixed(0)} above max ${maxX.toFixed(0)}, clamping`);
+        stickerX = maxX;
+      }
+
+      // Clamp Y position
+      if (stickerY < minY) {
+        console.log(`[STICKER] Y position ${stickerY.toFixed(0)} below min ${minY.toFixed(0)}, clamping`);
+        stickerY = minY;
+      } else if (stickerY > maxY) {
+        console.log(`[STICKER] Y position ${stickerY.toFixed(0)} above max ${maxY.toFixed(0)}, clamping`);
+        stickerY = maxY;
+      }
+
+      // Set position (using absolute coordinates, then we'll add to correct parent)
+      // We need to convert to parent-relative coordinates
+      const parentBounds = stickerParent.absoluteBoundingBox;
+      if (parentBounds) {
+        stickerInstance.x = stickerX - parentBounds.x;
+        stickerInstance.y = stickerY - parentBounds.y;
+      } else {
+        stickerInstance.x = stickerX;
+        stickerInstance.y = stickerY;
+      }
+
+      // Apply random rotation
+      const rotation = pickRandomRotation();
+      stickerInstance.rotation = rotation;
+
+      // Add to parent (or page if we can't add to instance)
+      if (stickerParent.type !== 'INSTANCE' && 'appendChild' in stickerParent) {
+        stickerParent.appendChild(stickerInstance);
+      } else {
+        // Add to the page at the calculated position
+        figma.currentPage.appendChild(stickerInstance);
+        // Re-set position since we added to page
+        stickerInstance.x = stickerX;
+        stickerInstance.y = stickerY;
+      }
+
+      // Name the sticker for easy identification
+      stickerInstance.name = `Sticker - ${sticker.name}`;
+
+      console.log(`[STICKER] ✓ Placed "${sticker.name}" at (${stickerInstance.x.toFixed(0)}, ${stickerInstance.y.toFixed(0)}) rotation: ${rotation}°`);
+      appliedCount++;
+
+    } catch (error) {
+      console.log(`[STICKER] Error placing sticker:`, error.message);
+    }
+  }
+
+  return { applied: appliedCount, total: allChatComponents.length };
+}
+
+/**
+ * Remove all stickers from around a chat thread
+ * Looks for nodes named "Sticker - *"
+ */
+function removeStickersFromThread(threadNode) {
+  const stickersToRemove = [];
+
+  // Search in the thread node and its parent (in case stickers are siblings)
+  const searchRoots = [threadNode];
+  if (threadNode.parent && threadNode.parent.type !== 'PAGE') {
+    searchRoots.push(threadNode.parent);
+  }
+  // Also search the page for stickers that might have been added there
+  searchRoots.push(figma.currentPage);
+
+  for (const root of searchRoots) {
+    function search(node, depth = 0) {
+      if (depth > 3) return;
+
+      if (node.name.startsWith('Sticker - ')) {
+        stickersToRemove.push(node);
+        return; // Don't search inside stickers
+      }
+
+      if ('children' in node) {
+        for (const child of node.children) {
+          search(child, depth + 1);
+        }
+      }
+    }
+
+    search(root);
+  }
+
+  // Remove duplicates (in case same sticker was found in multiple searches)
+  const uniqueStickers = [...new Map(stickersToRemove.map(s => [s.id, s])).values()];
+
+  console.log(`[STICKER] Removing ${uniqueStickers.length} stickers`);
+
+  for (const sticker of uniqueStickers) {
+    try {
+      sticker.remove();
+    } catch (e) {
+      console.log(`[STICKER] Could not remove sticker:`, e.message);
+    }
+  }
+
+  return { removed: uniqueStickers.length };
+}
+
+// ============================================================================
 // MESSAGE HANDLING
 // ============================================================================
 
@@ -2215,6 +2580,72 @@ figma.ui.onmessage = async (msg) => {
         message: `Removed reactions from ${result.removed} messages`
       });
     }
+    return;
+  }
+
+  if (msg.type === 'apply-stickers') {
+    const selection = figma.currentPage.selection;
+
+    if (selection.length === 0) {
+      figma.ui.postMessage({
+        type: 'error',
+        message: 'Please select a Chat Thread component first'
+      });
+      return;
+    }
+
+    const threadNode = selection[0];
+    const percentage = msg.percentage;
+
+    console.log(`[STICKER] Applying stickers at ${percentage}%`);
+
+    try {
+      // First remove any existing stickers
+      removeStickersFromThread(threadNode);
+
+      // Then apply new stickers
+      const result = await applyStickersToThread(threadNode, percentage);
+
+      if (result.total === 0) {
+        figma.ui.postMessage({
+          type: 'error',
+          message: 'No chat components found in selection'
+        });
+      } else {
+        figma.ui.postMessage({
+          type: 'success',
+          message: `Applied ${result.applied} stickers around messages`
+        });
+      }
+    } catch (error) {
+      console.log(`[STICKER] Error:`, error.message);
+      figma.ui.postMessage({
+        type: 'error',
+        message: `Error applying stickers: ${error.message}`
+      });
+    }
+    return;
+  }
+
+  if (msg.type === 'remove-stickers') {
+    const selection = figma.currentPage.selection;
+
+    if (selection.length === 0) {
+      figma.ui.postMessage({
+        type: 'error',
+        message: 'Please select a Chat Thread component first'
+      });
+      return;
+    }
+
+    const threadNode = selection[0];
+    console.log('[STICKER] Removing all stickers');
+    const result = removeStickersFromThread(threadNode);
+
+    figma.ui.postMessage({
+      type: 'success',
+      message: `Removed ${result.removed} stickers`
+    });
     return;
   }
 

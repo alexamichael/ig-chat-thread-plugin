@@ -534,7 +534,21 @@
               <span class="slider-label">Lots</span>
             </div>
           </div>
-          <span id="reactions-value" class="slider-value">0%</span>
+          <span id="reactions-value" class="slider-value">None</span>
+        </div>
+      </div>
+      <div class="slider-container" style="margin-top: 12px;">
+        <span class="subsection-label">Stickers</span>
+        <div class="slider-row">
+          <div class="slider-track-wrapper">
+            <input type="range" id="stickers-slider" class="slider-input" min="0" max="50" step="25" value="0">
+            <div class="slider-labels">
+              <span class="slider-label">None</span>
+              <span class="slider-label">Some</span>
+              <span class="slider-label">Lots</span>
+            </div>
+          </div>
+          <span id="stickers-value" class="slider-value">None</span>
         </div>
       </div>
     </div>
@@ -1099,6 +1113,51 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
 
     // Initialize slider visual
     updateSliderVisual();
+
+    // Stickers slider handler
+    const stickersSlider = document.getElementById('stickers-slider');
+    const stickersValue = document.getElementById('stickers-value');
+
+    function updateStickersSliderVisual() {
+      const value = parseInt(stickersSlider.value);
+      const progress = (value / 50) * 100;
+      stickersSlider.style.setProperty('--slider-progress', `${progress}%`);
+      // Display label instead of percentage
+      if (value === 0) {
+        stickersValue.textContent = 'None';
+      } else if (value === 25) {
+        stickersValue.textContent = 'Some';
+      } else if (value === 50) {
+        stickersValue.textContent = 'Lots';
+      } else {
+        stickersValue.textContent = `${value}%`;
+      }
+    }
+
+    stickersSlider.addEventListener('input', updateStickersSliderVisual);
+
+    stickersSlider.addEventListener('change', () => {
+      const value = parseInt(stickersSlider.value);
+      if (value > 0) {
+        parent.postMessage({
+          pluginMessage: {
+            type: 'apply-stickers',
+            percentage: value
+          }
+        }, '*');
+        showStatus(`Applying stickers...`, 'info');
+      } else {
+        parent.postMessage({
+          pluginMessage: {
+            type: 'remove-stickers'
+          }
+        }, '*');
+        showStatus('Removing stickers...', 'info');
+      }
+    });
+
+    // Initialize stickers slider visual
+    updateStickersSliderVisual();
 
     // Diagnostics button handler
     document.getElementById('diagnostics-btn').addEventListener('click', () => {

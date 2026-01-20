@@ -1695,8 +1695,10 @@ function findTextChatComponents(node) {
  * @param {boolean} isGroupChat - Whether this is a group chat
  * @param {string[]} emojiList - Array of emoji names to randomly pick from
  * @param {Map} emojiMap - Map of emoji names to component keys (optional)
+ * @param {Object} assignedProfiles - Object with { A: string, B: string, C: string } profile handles (for group chats)
+ * @param {string} messageSender - Which person sent this message ('A', 'B', or 'C')
  */
-function setReactionOnTextChat(textChatNode, enabled, isGroupChat = false, emojiList = ['Red Heart'], emojiMap = null) {
+function setReactionOnTextChat(textChatNode, enabled, isGroupChat = false, emojiList = ['Red Heart'], emojiMap = null, assignedProfiles = null, messageSender = 'B') {
   if (textChatNode.type !== 'INSTANCE') {
     return false;
   }
@@ -1719,7 +1721,7 @@ function setReactionOnTextChat(textChatNode, enabled, isGroupChat = false, emoji
 
       // If enabling reaction, also find and set the nested .Chat reaction component
       if (enabled) {
-        setChatReactionVariant(textChatNode, isGroupChat, emojiList, emojiMap);
+        setChatReactionVariant(textChatNode, isGroupChat, emojiList, emojiMap, assignedProfiles, messageSender);
       }
 
       return true;
@@ -1733,8 +1735,166 @@ function setReactionOnTextChat(textChatNode, enabled, isGroupChat = false, emoji
 }
 
 /**
- * Discover emoji component IDs by finding existing emoji instances in the ENTIRE PAGE
- * This searches beyond just the selected thread to find more emoji variety
+ * Discover assigned profiles from existing recipient Chat blocks
+ * Also picks a random profile for Person A (the sender)
+ * Returns an object with profile assignments { A: string, B: string, C: string }
+ */
+function discoverAssignedProfiles(threadNode) {
+  const profiles = { A: null, B: null, C: null };
+  const uniqueProfiles = [];
+
+  // Find recipient chat blocks and extract their profile Handle values
+  const recipientBlocks = findRecipientChatBlocks(threadNode);
+  console.log(`[PROFILE DISCOVER] Found ${recipientBlocks.length} recipient blocks`);
+
+  for (const block of recipientBlocks) {
+    const personNode = findProfileInBlock(block);
+    if (personNode && personNode.type === 'INSTANCE') {
+      try {
+        const props = personNode.componentProperties;
+        for (const key of Object.keys(props)) {
+          if (key.toLowerCase().includes('handle')) {
+            const handleValue = props[key].value;
+            if (handleValue && !uniqueProfiles.includes(handleValue)) {
+              uniqueProfiles.push(handleValue);
+              console.log(`[PROFILE DISCOVER] Found profile: "${handleValue}"`);
+            }
+            break;
+          }
+        }
+      } catch (e) {
+        // Skip nodes we can't read
+      }
+    }
+  }
+
+  // Assign to B and C
+  if (uniqueProfiles.length >= 1) {
+    profiles.B = uniqueProfiles[0];
+  }
+  if (uniqueProfiles.length >= 2) {
+    profiles.C = uniqueProfiles[1];
+  }
+
+  // Pick a random profile for Person A (the sender) that's different from B and C
+  const usedProfiles = [profiles.B, profiles.C].filter(p => p);
+  const availableForA = PROFILE_VARIANTS.filter(p => !usedProfiles.includes(p));
+  if (availableForA.length > 0) {
+    profiles.A = availableForA[Math.floor(Math.random() * availableForA.length)];
+  } else {
+    // Fallback if somehow all profiles are used
+    profiles.A = PROFILE_VARIANTS[0];
+  }
+
+  console.log(`[PROFILE DISCOVER] Assigned profiles - A: ${profiles.A}, B: ${profiles.B}, C: ${profiles.C}`);
+  return profiles;
+}
+
+/**
+ * Set profile photos on .People profile pictures components inside .Chat reaction
+ * This is used for group chat reactions where the reaction shows who reacted
+ *
+ * Logic:
+ * - If the message is from a RECIPIENT (B or C):
+ *   - 2 reactions: Show Person A + the other recipient
+ *   - 1 reaction: Show Person A
+ * - If the message is from the SENDER (A):
+ *   - 2 reactions: Show Person B + Person C
+ *   - 1 reaction: Show either Person B or Person C (random)
+ *
+ * @param {SceneNode} chatReactionNode - The .Chat reaction component
+ * @param {Object} assignedProfiles - Object with { A: string, B: string, C: string } profile handles
+ * @param {boolean} isSenderMessage - Whether this message was sent by Person A
+ * @param {string} messageSender - Which person sent this message ('A', 'B', or 'C')
+ * @param {number} reactionCount - Number of reactions (1 or 2)
+ */
+function setReactionProfilePhotos(chatReactionNode, assignedProfiles, isSenderMessage, messageSender, reactionCount) {
+  if (!assignedProfiles) {
+    console.log(`[REACTION PROFILE] No assigned profiles provided, skipping`);
+    return;
+  }
+
+  // Determine which profiles to show based on who sent the message
+  let profilesToAssign = [];
+
+  if (isSenderMessage || messageSender === 'A') {
+    // Person A sent the message → reactors are B and/or C
+    if (reactionCount >= 2) {
+      // 2 reactions: Show B and C
+      profilesToAssign = [assignedProfiles.B, assignedProfiles.C].filter(p => p);
+    } else {
+      // 1 reaction: Show either B or C (random)
+      const options = [assignedProfiles.B, assignedProfiles.C].filter(p => p);
+      if (options.length > 0) {
+        profilesToAssign = [options[Math.floor(Math.random() * options.length)]];
+      }
+    }
+    console.log(`[REACTION PROFILE] Sender message (A) → showing reactors: ${profilesToAssign.join(', ')}`);
+  } else {
+    // Person B or C sent the message → reactors include Person A
+    if (reactionCount >= 2) {
+      // 2 reactions: Show A + the other recipient
+      if (messageSender === 'B') {
+        // B sent → show A + C
+        profilesToAssign = [assignedProfiles.A, assignedProfiles.C].filter(p => p);
+      } else {
+        // C sent → show A + B
+        profilesToAssign = [assignedProfiles.A, assignedProfiles.B].filter(p => p);
+      }
+    } else {
+      // 1 reaction: Show Person A
+      if (assignedProfiles.A) {
+        profilesToAssign = [assignedProfiles.A];
+      }
+    }
+    console.log(`[REACTION PROFILE] Recipient message (${messageSender}) → showing reactors: ${profilesToAssign.join(', ')}`);
+  }
+
+  if (profilesToAssign.length === 0) {
+    console.log(`[REACTION PROFILE] No profiles to assign`);
+    return;
+  }
+
+  let profileIndex = 0;
+
+  function findAndSetProfiles(node, depth = 0) {
+    if (depth > 20) return;
+
+    const name = node.name.toLowerCase();
+
+    // Look for .People profile pictures or Person components with Handle property
+    if ((name.includes('people profile') || name.includes('person')) && node.type === 'INSTANCE') {
+      try {
+        const props = node.componentProperties;
+        for (const key of Object.keys(props)) {
+          if (key.toLowerCase().includes('handle')) {
+            if (profileIndex < profilesToAssign.length) {
+              const profileToSet = profilesToAssign[profileIndex];
+              console.log(`[REACTION PROFILE] Setting profile ${profileIndex} to "${profileToSet}"`);
+              node.setProperties({ [key]: profileToSet });
+              profileIndex++;
+            }
+            break;
+          }
+        }
+      } catch (e) {
+        console.log(`[REACTION PROFILE] Could not set profile:`, e.message);
+      }
+    }
+
+    if ('children' in node) {
+      for (const child of node.children) {
+        findAndSetProfiles(child, depth + 1);
+      }
+    }
+  }
+
+  findAndSetProfiles(chatReactionNode);
+  console.log(`[REACTION PROFILE] Set ${profileIndex} profile photos in reaction`);
+}
+
+/**
+ * Discover emoji component IDs by finding existing emoji instances in the thread
  * Returns a map of emoji names to their component keys
  */
 function discoverEmojiComponentIds(threadNode) {
@@ -1816,8 +1976,10 @@ function discoverEmojiComponentIds(threadNode) {
  * @param {boolean} isGroupChat - Whether this is a group chat
  * @param {string[]} emojiList - Array of emoji names to use
  * @param {Map} emojiMap - Map of emoji names to component keys (optional)
+ * @param {Object} assignedProfiles - Object with { A: string, B: string, C: string } profile handles (for group chats)
+ * @param {string} messageSender - Which person sent this message ('A', 'B', or 'C')
  */
-function setChatReactionVariant(textChatNode, isGroupChat = false, emojiList = ['Red Heart'], emojiMap = null) {
+function setChatReactionVariant(textChatNode, isGroupChat = false, emojiList = ['Red Heart'], emojiMap = null, assignedProfiles = null, messageSender = 'B') {
   function findChatReaction(node, depth = 0) {
     if (depth > 15) return null;
 
@@ -1857,10 +2019,19 @@ function setChatReactionVariant(textChatNode, isGroupChat = false, emojiList = [
       }
     }
 
+    let reactionCount = 1;
     if (reactionsKey) {
       // For 1:1 chats, always use "1" (single emoji)
-      const reactionCount = isGroupChat ? String(Math.floor(Math.random() * 2) + 1) : "1";
-      chatReactionNode.setProperties({ [reactionsKey]: reactionCount });
+      // For group chats, randomize between "1" and "2" (which show profiles)
+      reactionCount = isGroupChat ? Math.floor(Math.random() * 2) + 1 : 1;
+      chatReactionNode.setProperties({ [reactionsKey]: String(reactionCount) });
+
+      // For group chats with 1 or 2 reactions, set the profile photos
+      if (isGroupChat && assignedProfiles && (reactionCount === 1 || reactionCount === 2)) {
+        console.log(`[REACTION PROFILE] Setting profiles for ${reactionCount} reaction(s) in group chat (sender: ${messageSender})`);
+        const isSenderMessage = messageSender === 'A';
+        setReactionProfilePhotos(chatReactionNode, assignedProfiles, isSenderMessage, messageSender, reactionCount);
+      }
     }
 
     // If we have an emoji map, try to swap emoji
@@ -1997,6 +2168,13 @@ function applyReactionsToThread(threadNode, percentage, isGroupChat) {
 
   console.log(`[REACTION] Combined emoji map has ${emojiMap.size} emoji available`);
 
+  // For group chats, discover the assigned profiles (B and C) to use in reaction photos
+  let assignedProfiles = null;
+  if (isGroupChat) {
+    console.log('[REACTION] Group chat detected, discovering assigned profiles...');
+    assignedProfiles = discoverAssignedProfiles(threadNode);
+  }
+
   // Sort by vertical position to maintain message order
   allChatComponents.sort((a, b) => {
     const aY = a.absoluteTransform ? a.absoluteTransform[1][2] : 0;
@@ -2052,10 +2230,49 @@ function applyReactionsToThread(threadNode, percentage, isGroupChat) {
 
     console.log(`[REACTION] Processing ${componentType}: "${messageText ? messageText.substring(0, 30) + '...' : '(no text)'}"`);
 
+    // Determine who sent this message (A = sender/you, B or C = recipients)
+    let messageSender = 'B'; // Default to recipient B
+
+    // Check if this is a sender message (Person A / "you")
+    const isSenderMessage = isSenderNode(chatComponent) ||
+                            (chatComponent.parent && isSenderNode(chatComponent.parent));
+
+    if (isSenderMessage) {
+      messageSender = 'A';
+    } else if (isGroupChat) {
+      // For group chat recipients, try to determine if it's B or C
+      // We can check the profile photo in the parent block to distinguish
+      const parentBlock = chatComponent.parent;
+      if (parentBlock) {
+        const personNode = findProfileInBlock(parentBlock);
+        if (personNode && personNode.type === 'INSTANCE') {
+          try {
+            const props = personNode.componentProperties;
+            for (const key of Object.keys(props)) {
+              if (key.toLowerCase().includes('handle')) {
+                const handleValue = props[key].value;
+                // Compare with assigned profiles to determine B or C
+                if (assignedProfiles && handleValue === assignedProfiles.C) {
+                  messageSender = 'C';
+                } else {
+                  messageSender = 'B';
+                }
+                break;
+              }
+            }
+          } catch (e) {
+            // Default to B if we can't read properties
+          }
+        }
+      }
+    }
+
+    console.log(`[REACTION] Message sender: ${messageSender}`);
+
     // Pick a contextual emoji based on the message content
     const selectedEmoji = pickContextualEmojiFromAvailable(messageText, emojiMap);
 
-    if (setReactionOnTextChat(chatComponent, true, isGroupChat, [selectedEmoji], emojiMap)) {
+    if (setReactionOnTextChat(chatComponent, true, isGroupChat, [selectedEmoji], emojiMap, assignedProfiles, messageSender)) {
       appliedCount++;
     }
   }

@@ -141,6 +141,22 @@
       margin-top: 8px;
     }
 
+    .custom-topic-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .custom-topic-row .custom-topic-input {
+      flex: 1;
+    }
+
+    .custom-topic-row .generate-btn {
+      flex-shrink: 0;
+      padding: 10px 16px;
+      min-width: auto;
+    }
+
     button {
       flex: 1;
       background: #4A5DF9;
@@ -174,27 +190,33 @@
 
     .status-bar {
       display: none;
-      padding: 10px;
-      border-radius: 6px;
+      padding: 10px 16px;
       font-size: 11px;
       text-align: center;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      border-top: 1px solid rgba(0,0,0,0.1);
+      background: #ffffff;
     }
 
     .status-bar.success {
       display: block;
-      background: #d4edda;
+      background: linear-gradient(#d4edda, #d4edda), #ffffff;
       color: #155724;
     }
 
     .status-bar.error {
       display: block;
-      background: #f8d7da;
+      background: linear-gradient(#f8d7da, #f8d7da), #ffffff;
       color: #721c24;
     }
 
     .status-bar.info {
       display: block;
-      background: rgba(74, 93, 249, 0.1);
+      background: linear-gradient(#e8ebfe, #e8ebfe), #ffffff;
       color: #4A5DF9;
     }
 
@@ -247,72 +269,28 @@
       margin-bottom: 8px;
     }
 
-    .footer {
-      padding: 16px;
-      font-size: 12px;
-      line-height: 16.8px;
-      color: #ffffff;
-      background: #212328;
+    .tagline {
+      text-align: center;
+      font-size: 11px;
+      color: #888;
       margin-top: 8px;
-      margin-left: -16px;
-      margin-right: -16px;
-      margin-bottom: -16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      padding-bottom: 16px;
     }
 
-    .footer-text {
-      flex: 1;
-    }
-
-    .footer a {
-      color: #18A0FB;
+    .tagline a {
+      color: #4A5DF9;
       text-decoration: none;
     }
 
-    .footer a:hover {
+    .tagline a:hover {
       text-decoration: underline;
-    }
-
-    .share-btn {
-      display: inline-flex;
-      max-width: 80px;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      background: #f0f0f0;
-      border: none;
-      border-radius: 8px;
-      padding: 8px 8px;
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      color: #4A5DF9;
-    }
-
-    .share-btn:hover {
-      background: #e0e0e0;
-    }
-
-    .share-btn svg {
-      width: 12px;
-      height: 12px;
-      flex-shrink: 0;
     }
 
     .version-tag {
       font-size: 10px;
-      color: #666;
-      opacity: 0.7;
+      color: #aaa;
       display: block;
       margin-top: 4px;
-    }
-
-    .footer-left {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
     }
 
     /* Chat Type Radio Buttons */
@@ -473,11 +451,7 @@
     }
 
     .slider-value {
-      min-width: 36px;
-      text-align: right;
-      font-size: 12px;
-      font-weight: 600;
-      color: #4A5DF9;
+      display: none;
     }
 
     .subsection-label {
@@ -492,7 +466,7 @@
     <!-- Banner Placeholder -->
     <div class="banner-wrapper">
       <img id="header-img" alt="IG Chat Gen" />
-      <span class="banner-placeholder">IG Direct Chat Gen</span>
+      <span class="banner-placeholder">IG Direct Chat Thread</span>
     </div>
 
     <!-- Chat Type Selection -->
@@ -520,44 +494,9 @@
 
     <div class="divider"></div>
 
-    <!-- Chat Flair Section -->
+    <!-- Conversation Topic Section -->
     <div class="section">
-      <span class="section-label">Chat flair</span>
-      <div class="slider-container">
-        <span class="subsection-label">Chat reactions</span>
-        <div class="slider-row">
-          <div class="slider-track-wrapper">
-            <input type="range" id="reactions-slider" class="slider-input" min="0" max="50" step="25" value="0">
-            <div class="slider-labels">
-              <span class="slider-label">None</span>
-              <span class="slider-label">Some</span>
-              <span class="slider-label">Lots</span>
-            </div>
-          </div>
-          <span id="reactions-value" class="slider-value">None</span>
-        </div>
-      </div>
-      <div class="slider-container" style="margin-top: 12px;">
-        <span class="subsection-label">Stickers</span>
-        <div class="slider-row">
-          <div class="slider-track-wrapper">
-            <input type="range" id="stickers-slider" class="slider-input" min="0" max="50" step="25" value="0">
-            <div class="slider-labels">
-              <span class="slider-label">None</span>
-              <span class="slider-label">Some</span>
-              <span class="slider-label">Lots</span>
-            </div>
-          </div>
-          <span id="stickers-value" class="slider-value">None</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <!-- Topic Selection Dropdown -->
-    <div class="section">
-      <span class="section-label">Select conversation topic</span>
+      <span class="section-label">Conversation topic</span>
       <select id="topic-select" class="topic-select">
         <option value="" disabled selected>Choose a topic...</option>
         <option value="sports">🏀 Sports</option>
@@ -573,48 +512,62 @@
 
     <!-- Custom Topic -->
     <div class="section">
-      <span class="section-label">Or enter a custom topic</span>
-      <textarea
-        id="custom-topic-input"
-        class="custom-topic-input"
-        placeholder="Describe your own conversation topic..."
-        rows="1"
-      ></textarea>
+      <span class="section-label">Custom topic</span>
+      <div class="custom-topic-row">
+        <textarea
+          id="custom-topic-input"
+          class="custom-topic-input"
+          placeholder="Describe topic"
+          rows="1"
+        ></textarea>
+        <button id="generate-btn" class="generate-btn" disabled>Generate</button>
+      </div>
     </div>
 
-    <div id="status-bar" class="status-bar"></div>
+    <div class="divider"></div>
 
-    <div class="button-row">
-      <button id="generate-btn" disabled>Generate conversation</button>
+    <!-- Chat Flair Section -->
+    <div class="section">
+      <span class="section-label">Chat flair</span>
+      <div class="slider-container">
+        <span class="subsection-label">Chat reactions</span>
+        <div class="slider-row">
+          <div class="slider-track-wrapper">
+            <input type="range" id="reactions-slider" class="slider-input" min="0" max="100" step="50" value="0">
+            <div class="slider-labels">
+              <span class="slider-label">None</span>
+              <span class="slider-label">Some</span>
+              <span class="slider-label">Lots</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="slider-container" style="margin-top: 12px;">
+        <span class="subsection-label">Stickers</span>
+        <div class="slider-row">
+          <div class="slider-track-wrapper">
+            <input type="range" id="stickers-slider" class="slider-input" min="0" max="100" step="50" value="0">
+            <div class="slider-labels">
+              <span class="slider-label">None</span>
+              <span class="slider-label">Some</span>
+              <span class="slider-label">Lots</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="button-row">
       <button id="diagnostics-btn" class="secondary">🔍 Run Diagnostics</button>
     </div>
 
-    <div class="footer">
-      <div class="footer-left">
-        <span class="footer-text">Questions or feedback? <br>Reach out to <a href="https://www.internalfb.com/profile/view/6709430" target="_blank" style="color: #4A5DF9; text-decoration: none;">Alexa Michael</a></span>
-        <span class="version-tag">v2.0</span>
-      </div>
-      <button class="share-btn" id="share-btn">Share
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-          <mask id="mask0_link" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="12" height="12">
-            <rect width="12" height="12" fill="url(#pattern0_link)"/>
-          </mask>
-          <g mask="url(#mask0_link)">
-            <rect width="12" height="12" fill="currentColor"/>
-          </g>
-          <defs>
-            <pattern id="pattern0_link" patternContentUnits="objectBoundingBox" width="1" height="1">
-              <use xlink:href="#image0_link" transform="scale(0.0416667)"/>
-            </pattern>
-            <image id="image0_link" width="24" height="24" preserveAspectRatio="none" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAGKADAAQAAAABAAAAGAAAAADiNXWtAAABuUlEQVRIDc3VsUpDQRAFULVSCFgYbRQtbCwFfyWV/oKVP2Yh6YSUWqbwGzRgYyVY6T3oCy8vm8eqhV64vOzs7szuzJ3N2to/w3rOMwqvw8fwLZyFN+F5uBH+GAfZeRe+93CauePw2zjJDifm/CW8Cs/CQXgaXobPoXnfbwXZzoanr82TfPfDEvZivA0FcZPqdB1l8Ws4DjfDPgjS3ERNqrFVvfIzXW6h8L/CTnbL/bDjRU0EoK4i5Fxa+rCbyYeQI0HaUHh2El4CtSionK9KS9u5IG7SBnUJQHULoPNGigpaQte5cRckLIBmnEOH3ocmJmFJLTXOSVif8KPj5zBgNFnSeY1zh3I4fnS8Q8/hOiZcr4sa5/aMQz6kWboX0ORegdpQwEYtvoKVQBCEQSCEsgSSEp3E2iBB9j7nzfrD/CDxImaxcqRJ2hhmIEhXiu01Vb9vskoAzmqxqk+K+y9iFcBD5cHqA7UoqJxLSxU8rdNQEE/uqiAkPPlap6Arc565JfiTaJ5aX+lSk0FIXSSsTxyC6opqib0XgjQ34ajE+9iXdN7rtTMpXWqi8NRFwk6sGUfhQodm/Lf4AEl1fHWf7Ej1AAAAAElFTkSuQmCC"/>
-          </defs>
-        </svg>
-      </button>
+    <div class="tagline">
+      <span>Questions or feedback? Reach out to <a href="https://www.internalfb.com/profile/view/6709430" target="_blank">Alexa Michael</a></span>
+      <span class="version-tag">v2.4</span>
     </div>
   </div>
+
+  <div id="status-bar" class="status-bar"></div>
 
 <script src="headerImage.js"></script>
   <script>
@@ -705,14 +658,48 @@
       family: "THREE family members or close friends in a group chat. All messages should be addressed to the ENTIRE GROUP. They share updates, coordinate plans, and check in on everyone with warmth."
     };
 
-    // Topic dropdown selection
-    topicSelect.addEventListener('change', () => {
+    // Topic dropdown selection - now generates immediately
+    topicSelect.addEventListener('change', async () => {
       selectedTopic = topicSelect.value;
       topicSelect.classList.add('selected');
       customTopic = null;
       customTopicInput.value = '';
       customTopicInput.classList.remove('active');
       updateGenerateButton();
+
+      // Clear any existing reactions and stickers
+      parent.postMessage({
+        pluginMessage: { type: 'remove-reactions' }
+      }, '*');
+      parent.postMessage({
+        pluginMessage: { type: 'remove-stickers' }
+      }, '*');
+
+      // Reset sliders to "None"
+      reactionsSlider.value = 0;
+      stickersSlider.value = 0;
+      updateSliderVisual();
+      updateStickersSliderVisual();
+
+      // Auto-generate when a topic is selected
+      if (selectedTopic && currentStructure && currentStructure.length > 0) {
+        generateBtn.disabled = true;
+        showStatus('Generating conversation...', 'info');
+
+        try {
+          const messages = await generateConversationWithLlama(selectedTopic, currentStructure, false);
+
+          parent.postMessage({
+            pluginMessage: {
+              type: 'populate-conversation',
+              messages: messages
+            }
+          }, '*');
+        } catch (error) {
+          showStatus(`Error: ${error.message}`, 'error');
+          generateBtn.disabled = false;
+        }
+      }
     });
 
     // Custom topic input handling
@@ -987,7 +974,7 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
       if (!hasTopicSelected || !currentStructure) return;
 
       generateBtn.disabled = true;
-      generateBtn.innerHTML = '<span class="loading-spinner"></span>Generating...';
+      generateBtn.innerHTML = '<span class="loading-spinner"></span>';
       showStatus('Analyzing structure and generating conversation...', 'info');
 
       try {
@@ -1004,14 +991,8 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
       } catch (error) {
         showStatus(`Error: ${error.message}`, 'error');
         generateBtn.disabled = false;
-        generateBtn.textContent = 'Generate conversation';
+        generateBtn.textContent = 'Generate';
       }
-    });
-
-    // Share button
-    document.getElementById('share-btn').addEventListener('click', () => {
-      const pluginUrl = 'https://www.figma.com/community/plugin/1590428082327008419/ig-direct-chat-gen';
-      window.open(pluginUrl, '_blank');
     });
 
     // Handle messages from plugin
@@ -1049,11 +1030,11 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
       } else if (msg.type === 'success') {
         showStatus(msg.message || 'Conversation generated successfully!', 'success');
         generateBtn.disabled = false;
-        generateBtn.textContent = 'Generate conversation';
+        generateBtn.textContent = 'Generate';
       } else if (msg.type === 'error') {
         showStatus(msg.message || 'An error occurred', 'error');
         generateBtn.disabled = false;
-        generateBtn.textContent = 'Generate conversation';
+        generateBtn.textContent = 'Generate';
 
         if (msg.message && msg.message.includes('select')) {
           currentStructure = null;
@@ -1075,32 +1056,24 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
 
     function updateSliderVisual() {
       const value = parseInt(reactionsSlider.value);
-      const progress = (value / 50) * 100;
+      const progress = (value / 100) * 100;
       reactionsSlider.style.setProperty('--slider-progress', `${progress}%`);
-      // Display label instead of percentage
-      if (value === 0) {
-        reactionsValue.textContent = 'None';
-      } else if (value === 25) {
-        reactionsValue.textContent = 'Some';
-      } else if (value === 50) {
-        reactionsValue.textContent = 'Lots';
-      } else {
-        reactionsValue.textContent = `${value}%`;
-      }
     }
 
     reactionsSlider.addEventListener('input', updateSliderVisual);
 
     reactionsSlider.addEventListener('change', () => {
       const value = parseInt(reactionsSlider.value);
-      if (value > 0) {
+      // Map slider values: 0=None, 50=Some (25%), 100=Lots (50%)
+      const percentage = value === 0 ? 0 : (value === 50 ? 25 : 50);
+      if (percentage > 0) {
         parent.postMessage({
           pluginMessage: {
             type: 'apply-reactions',
-            percentage: value
+            percentage: percentage
           }
         }, '*');
-        showStatus(`Applying reactions to ${value}% of messages...`, 'info');
+        showStatus(`Applying reactions...`, 'info');
       } else {
         parent.postMessage({
           pluginMessage: {
@@ -1120,29 +1093,21 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
 
     function updateStickersSliderVisual() {
       const value = parseInt(stickersSlider.value);
-      const progress = (value / 50) * 100;
+      const progress = (value / 100) * 100;
       stickersSlider.style.setProperty('--slider-progress', `${progress}%`);
-      // Display label instead of percentage
-      if (value === 0) {
-        stickersValue.textContent = 'None';
-      } else if (value === 25) {
-        stickersValue.textContent = 'Some';
-      } else if (value === 50) {
-        stickersValue.textContent = 'Lots';
-      } else {
-        stickersValue.textContent = `${value}%`;
-      }
     }
 
     stickersSlider.addEventListener('input', updateStickersSliderVisual);
 
     stickersSlider.addEventListener('change', () => {
       const value = parseInt(stickersSlider.value);
-      if (value > 0) {
+      // Map slider values: 0=None, 50=Some (25%), 100=Lots (50%)
+      const percentage = value === 0 ? 0 : (value === 50 ? 25 : 50);
+      if (percentage > 0) {
         parent.postMessage({
           pluginMessage: {
             type: 'apply-stickers',
-            percentage: value
+            percentage: percentage
           }
         }, '*');
         showStatus(`Applying stickers...`, 'info');

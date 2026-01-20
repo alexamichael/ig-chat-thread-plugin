@@ -2719,6 +2719,285 @@ function removeStickersFromThread(threadNode) {
 }
 
 // ============================================================================
+// GRADIENT: Apply gradient strength to .Gradient step instances
+// ============================================================================
+
+/**
+ * Check if a node is a .Gradient step instance
+ */
+function isGradientStepInstance(node) {
+  if (node.type !== "INSTANCE") {
+    return false;
+  }
+
+  // Check instance name (case-insensitive, flexible matching)
+  var nodeName = node.name.toLowerCase();
+  if (nodeName.includes("gradient step") || nodeName.includes(".gradient step")) {
+    return true;
+  }
+
+  // Also check the main component name if available
+  try {
+    var mainComponent = node.mainComponent;
+    if (mainComponent) {
+      var componentName = mainComponent.name.toLowerCase();
+      if (componentName.includes("gradient step") || componentName.includes(".gradient step")) {
+        return true;
+      }
+    }
+  } catch (e) {
+    // mainComponent may not be accessible
+  }
+
+  return false;
+}
+
+/**
+ * Find all .Gradient step instances within a node
+ */
+function findGradientStepInstances(node) {
+  var instances = [];
+
+  // Use Figma's built-in findAll method which properly traverses all descendants
+  if (typeof node.findAll === "function") {
+    try {
+      instances = node.findAll(function(n) {
+        return isGradientStepInstance(n);
+      });
+      if (instances.length > 0) {
+        return instances;
+      }
+    } catch (e) {
+      // Fall back to manual traversal if findAll fails
+    }
+  }
+
+  // Manual deep traversal to ensure we find instances nested in components
+  function traverse(current, depth) {
+    if (!current || depth <= 0) {
+      return;
+    }
+
+    if (isGradientStepInstance(current)) {
+      instances.push(current);
+    }
+
+    // Try to access children
+    try {
+      if (current.children && current.children.length > 0) {
+        for (var i = 0; i < current.children.length; i++) {
+          traverse(current.children[i], depth - 1);
+        }
+      }
+    } catch (e) {
+      // Children might not be accessible
+    }
+  }
+
+  traverse(node, 15); // Search up to 15 levels deep
+  return instances;
+}
+
+/**
+ * Get absolute Y position of a node
+ */
+function getAbsoluteY(node) {
+  var y = 0;
+  var current = node;
+  while (current && current.type !== "PAGE" && current.type !== "DOCUMENT") {
+    if ("y" in current) {
+      y += current.y;
+    }
+    current = current.parent;
+  }
+  return y;
+}
+
+/**
+ * Get frame bounds for clipping calculations
+ */
+function getFrameBounds(frame) {
+  var absY = getAbsoluteY(frame);
+  return {
+    top: absY,
+    bottom: absY + frame.height,
+    height: frame.height
+  };
+}
+
+/**
+ * Check if an instance is partially visible within frame bounds
+ */
+function isPartiallyVisible(instance, frameBounds) {
+  var instanceY = getAbsoluteY(instance);
+  var instanceTop = instanceY;
+  var instanceBottom = instanceY + instance.height;
+
+  return instanceBottom > frameBounds.top && instanceTop < frameBounds.bottom;
+}
+
+/**
+ * Check if an instance is clipped at top
+ */
+function isClippedAtTop(instance, frameBounds) {
+  var instanceY = getAbsoluteY(instance);
+  return instanceY < frameBounds.top;
+}
+
+/**
+ * Check if an instance is clipped at bottom
+ */
+function isClippedAtBottom(instance, frameBounds) {
+  var instanceY = getAbsoluteY(instance);
+  var instanceBottom = instanceY + instance.height;
+  return instanceBottom > frameBounds.bottom;
+}
+
+/**
+ * Set the Strength property on a gradient step instance
+ */
+function setStrengthProperty(instance, strength) {
+  try {
+    var componentProperties = instance.componentProperties;
+
+    // Find the Strength property key (case-insensitive, may have a suffix like "Strength#1234")
+    var strengthKey = null;
+    for (var key in componentProperties) {
+      var keyLower = key.toLowerCase();
+      if (keyLower === "strength" || keyLower.startsWith("strength#")) {
+        strengthKey = key;
+        break;
+      }
+    }
+
+    if (strengthKey) {
+      var propDef = componentProperties[strengthKey];
+      var propsToSet = {};
+
+      // Handle different property types
+      if (propDef.type === "VARIANT") {
+        propsToSet[strengthKey] = strength.toString();
+      } else if (propDef.type === "TEXT") {
+        propsToSet[strengthKey] = strength.toString();
+      } else if (propDef.type === "BOOLEAN") {
+        propsToSet[strengthKey] = strength >= 50;
+      } else {
+        propsToSet[strengthKey] = strength.toString();
+      }
+
+      instance.setProperties(propsToSet);
+      return true;
+    }
+  } catch (e) {
+    console.log('[GRADIENT] Error setting strength property:', e.message);
+  }
+  return false;
+}
+
+/**
+ * Process a container and apply gradient strengths to all gradient step instances
+ */
+function processGradientContainer(container) {
+  var allInstances = findGradientStepInstances(container);
+
+  // For groups, don't filter by visibility since groups don't clip content
+  // For frames with clipsContent, filter to only visible instances
+  var instances = [];
+  var shouldFilterByVisibility = container.type === "FRAME" && container.clipsContent === true;
+  var frameBounds = getFrameBounds(container);
+
+  if (shouldFilterByVisibility) {
+    for (var i = 0; i < allInstances.length; i++) {
+      if (isPartiallyVisible(allInstances[i], frameBounds)) {
+        instances.push(allInstances[i]);
+      }
+    }
+  } else {
+    instances = allInstances;
+  }
+
+  if (instances.length === 0) {
+    return { updatedCount: 0, totalCount: 0 };
+  }
+
+  // Sort instances by Y position (bottom to top)
+  instances.sort(function(a, b) {
+    var aY = getAbsoluteY(a) + (a.height / 2);
+    var bY = getAbsoluteY(b) + (b.height / 2);
+    return bY - aY; // Descending order (bottom first)
+  });
+
+  var updatedCount = 0;
+
+  // Check for clipping at edges
+  var topInstance = instances[instances.length - 1];
+  var bottomInstance = instances[0];
+  var topIsClipped = shouldFilterByVisibility && isClippedAtTop(topInstance, frameBounds);
+  var bottomIsClipped = shouldFilterByVisibility && isClippedAtBottom(bottomInstance, frameBounds);
+
+  // Assign strength values
+  for (var i = 0; i < instances.length; i++) {
+    var instance = instances[i];
+    var strength;
+
+    if (i === 0 && bottomIsClipped) {
+      strength = 0;
+    } else if (i === instances.length - 1 && topIsClipped) {
+      strength = 100;
+    } else {
+      strength = i * 10;
+    }
+
+    if (setStrengthProperty(instance, strength)) {
+      updatedCount++;
+    }
+  }
+
+  return { updatedCount: updatedCount, totalCount: instances.length };
+}
+
+/**
+ * Apply gradient to a thread node
+ */
+function applyGradientToThread(threadNode) {
+  console.log('[GRADIENT] Applying gradient to thread...');
+
+  var result = processGradientContainer(threadNode);
+
+  if (result.totalCount === 0) {
+    console.log('[GRADIENT] No .Gradient step instances found');
+    return { applied: 0, total: 0 };
+  }
+
+  console.log(`[GRADIENT] Updated ${result.updatedCount} of ${result.totalCount} gradient steps`);
+  return { applied: result.updatedCount, total: result.totalCount };
+}
+
+/**
+ * Remove gradient (reset all strengths to 0)
+ */
+function removeGradientFromThread(threadNode) {
+  console.log('[GRADIENT] Removing gradient from thread...');
+
+  var instances = findGradientStepInstances(threadNode);
+
+  if (instances.length === 0) {
+    console.log('[GRADIENT] No .Gradient step instances found');
+    return { removed: 0, total: 0 };
+  }
+
+  var removedCount = 0;
+  for (var i = 0; i < instances.length; i++) {
+    if (setStrengthProperty(instances[i], 0)) {
+      removedCount++;
+    }
+  }
+
+  console.log(`[GRADIENT] Reset ${removedCount} of ${instances.length} gradient steps to 0`);
+  return { removed: removedCount, total: instances.length };
+}
+
+// ============================================================================
 // MESSAGE HANDLING
 // ============================================================================
 
@@ -2863,6 +3142,64 @@ figma.ui.onmessage = async (msg) => {
       type: 'success',
       message: `Removed ${result.removed} stickers`
     });
+    return;
+  }
+
+  if (msg.type === 'apply-gradient') {
+    const selection = figma.currentPage.selection;
+
+    if (selection.length === 0) {
+      figma.ui.postMessage({
+        type: 'error',
+        message: 'Please select a Chat Thread component first'
+      });
+      return;
+    }
+
+    const threadNode = selection[0];
+    console.log('[GRADIENT] Applying gradient');
+    const result = applyGradientToThread(threadNode);
+
+    if (result.total === 0) {
+      figma.ui.postMessage({
+        type: 'error',
+        message: 'No .Gradient step instances found in selection'
+      });
+    } else {
+      figma.ui.postMessage({
+        type: 'success',
+        message: `Applied gradient to ${result.applied} of ${result.total} gradient steps`
+      });
+    }
+    return;
+  }
+
+  if (msg.type === 'remove-gradient') {
+    const selection = figma.currentPage.selection;
+
+    if (selection.length === 0) {
+      figma.ui.postMessage({
+        type: 'error',
+        message: 'Please select a Chat Thread component first'
+      });
+      return;
+    }
+
+    const threadNode = selection[0];
+    console.log('[GRADIENT] Removing gradient');
+    const result = removeGradientFromThread(threadNode);
+
+    if (result.total === 0) {
+      figma.ui.postMessage({
+        type: 'error',
+        message: 'No .Gradient step instances found in selection'
+      });
+    } else {
+      figma.ui.postMessage({
+        type: 'success',
+        message: `Removed gradient from ${result.removed} gradient steps`
+      });
+    }
     return;
   }
 

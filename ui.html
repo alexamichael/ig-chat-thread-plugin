@@ -37,20 +37,29 @@
     }
 
     .banner-wrapper {
-      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: calc(100% + 32px);
       max-width: 320px;
+      height: 80px;
       margin-bottom: 12px;
       overflow: hidden;
       margin-left: -16px;
       margin-right: -16px;
       margin-top: -12px;
-      width: calc(100% + 32px);
+      background: linear-gradient(135deg, #4A5DF9 0%, #7B68EE 50%, #E040FB 100%);
     }
 
     .banner-wrapper img {
-      width: 100%;
-      height: auto;
-      display: block;
+      display: none;
+    }
+
+    .banner-placeholder {
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
     }
 
     .section {
@@ -65,44 +74,32 @@
       color: #666;
     }
 
-    .topic-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-      margin-left: -16px;
-      margin-right: -16px;
-      padding-left: 16px;
-      padding-right: 16px;
-      width: calc(100% + 32px);
-    }
-
-    .topic-btn {
-      background: #f5f5f5;
-      border: 2px solid transparent;
+    .topic-select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e0e0e0;
       border-radius: 8px;
-      padding: 12px 10px;
       font-size: 12px;
-      font-weight: 500;
+      font-family: 'SF Pro Text', sans-serif;
+      color: #333;
+      background: #f5f5f5;
       cursor: pointer;
       transition: all 0.15s ease;
-      text-align: center;
-      color: #333;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
     }
 
-    .topic-btn:hover {
-      background: #ebebeb;
-    }
-
-    .topic-btn.selected {
-      background: rgba(74, 93, 249, 0.1);
+    .topic-select:focus {
+      outline: none;
       border-color: #4A5DF9;
-      color: #4A5DF9;
+      background-color: rgba(74, 93, 249, 0.05);
     }
 
-    .topic-btn .emoji {
-      display: block;
-      font-size: 20px;
-      margin-bottom: 4px;
+    .topic-select.selected {
+      border-color: #4A5DF9;
+      background-color: rgba(74, 93, 249, 0.05);
     }
 
     .custom-topic-input {
@@ -114,9 +111,12 @@
       font-family: 'SF Pro Text', sans-serif;
       color: #333;
       background: #f5f5f5;
-      resize: none;
+      resize: vertical;
       transition: all 0.15s ease;
       box-sizing: border-box;
+      min-height: 38px;
+      max-height: 62px;
+      line-height: 1.4;
     }
 
     .custom-topic-input:focus {
@@ -399,79 +399,61 @@
 </head>
 <body>
   <div class="container">
+    <!-- Banner Placeholder -->
     <div class="banner-wrapper">
-      <img id="header-img" src="">
-      </div>
-
-      <!-- Chat Type Selection -->
-      <div class="section">
-        <span class="section-label">Chat type</span>
-        <div class="chat-type-row">
-          <label class="radio-label">
-            <input type="radio" name="chat-type" value="1:1" checked>
-            <span class="radio-custom"></span>
-            <span class="radio-text">1:1 Chat</span>
-          </label>
-          <label class="radio-label">
-            <input type="radio" name="chat-type" value="group">
-            <span class="radio-custom"></span>
-            <span class="radio-text">Group Chat</span>
-          </label>
-        </div>
-        <div id="group-size-container" class="group-size-container" style="display: none;">
-          <label class="dropdown-label">Number of people</label>
-          <select id="group-size-select" class="group-size-select">
-            <option value="3" selected>3 people</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <div class="section">
-    <span class="section-label">Select conversation topic</span>
-    <div class="topic-grid">
-        <button class="topic-btn" data-topic="sports">
-          <span class="emoji">🏀</span>
-          Sports
-        </button>
-        <button class="topic-btn" data-topic="highschool">
-          <span class="emoji">🎒</span>
-          High School
-        </button>
-        <button class="topic-btn" data-topic="genz">
-          <span class="emoji">✨</span>
-          Gen-Z
-        </button>
-        <button class="topic-btn" data-topic="travel">
-          <span class="emoji">✈️</span>
-          Travel
-        </button>
-        <button class="topic-btn" data-topic="events">
-          <span class="emoji">🎉</span>
-          Events
-        </button>
-        <button class="topic-btn" data-topic="business">
-          <span class="emoji">💼</span>
-          Business
-        </button>
-        <button class="topic-btn" data-topic="creators">
-          <span class="emoji">🎬</span>
-          Creators
-        </button>
-        <button class="topic-btn" data-topic="family">
-          <span class="emoji">👨‍👩‍👧</span>
-          Friends & Family
-        </button>
+      <img id="header-img" alt="IG Chat Gen" />
+      <span class="banner-placeholder">IG Direct Chat Gen</span>
     </div>
 
-    <div class="section" style="margin-top: 10px;">
-      <span class="section-label">Custom conversation topic</span>
+    <!-- Chat Type Selection -->
+    <div class="section">
+      <span class="section-label">Chat type</span>
+      <div class="chat-type-row">
+        <label class="radio-label">
+          <input type="radio" name="chat-type" value="1:1" checked>
+          <span class="radio-custom"></span>
+          <span class="radio-text">1:1 Chat</span>
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="chat-type" value="group">
+          <span class="radio-custom"></span>
+          <span class="radio-text">Group Chat</span>
+        </label>
+      </div>
+      <div id="group-size-container" class="group-size-container" style="display: none;">
+        <label class="dropdown-label">Number of people</label>
+        <select id="group-size-select" class="group-size-select">
+          <option value="3" selected>3 people</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Topic Selection Dropdown -->
+    <div class="section">
+      <span class="section-label">Select conversation topic</span>
+      <select id="topic-select" class="topic-select">
+        <option value="" disabled selected>Choose a topic...</option>
+        <option value="sports">🏀 Sports</option>
+        <option value="highschool">🎒 High School</option>
+        <option value="genz">✨ Gen-Z</option>
+        <option value="travel">✈️ Travel</option>
+        <option value="events">🎉 Events</option>
+        <option value="business">💼 Business</option>
+        <option value="creators">🎬 Creators</option>
+        <option value="family">👨‍👩‍👧 Friends & Family</option>
+      </select>
+    </div>
+
+    <!-- Custom Topic -->
+    <div class="section">
+      <span class="section-label">Or enter a custom topic</span>
       <textarea
         id="custom-topic-input"
         class="custom-topic-input"
         placeholder="Describe your own conversation topic..."
-        rows="2"
+        rows="1"
       ></textarea>
     </div>
 
@@ -507,25 +489,23 @@
 
 <script src="headerImage.js"></script>
   <script>
-// Set header image from external file
+    // Set header image from external file
     document.getElementById('header-img').src = HEADER_IMAGE;
 
     // ============================================================================
     // EMBEDDED LLAMA API KEY
-    // Get your key from: https://llama.developer.meta.com/api-keys/ (requires VPN)
     // ============================================================================
     const LLAMA_API_KEY = 'LLM|1428288808968195|FSBSdnVSLJIadzuqqUCP-sjT91U';
 
     let selectedTopic = null;
     let customTopic = null;
     let currentStructure = null;
-    let patternDescription = '';
     let isGroupChat = false;
     let participants = 2;
-    let userSelectedChatType = null; // Track user's manual selection
+    let userSelectedChatType = null;
 
     // DOM elements
-    const topicBtns = document.querySelectorAll('.topic-btn');
+    const topicSelect = document.getElementById('topic-select');
     const generateBtn = document.getElementById('generate-btn');
     const statusBar = document.getElementById('status-bar');
     const customTopicInput = document.getElementById('custom-topic-input');
@@ -533,108 +513,9 @@
     const groupSizeContainer = document.getElementById('group-size-container');
     const groupSizeSelect = document.getElementById('group-size-select');
 
-    // ============================================================================
-    // LLAMA API: Generate full name from username
-    // ============================================================================
-    async function generateNameFromUsername(username) {
-      console.log(`[NAME GEN] Generating name from username: ${username}`);
-
-      const systemPrompt = `You are a name generator. Given a social media username, generate a realistic full name that could belong to that person.
-
-RULES:
-1. The generated name should use as many letters or similar sounds from the username as possible
-2. The name should sound like a real person's name (first name + last name)
-3. Be creative but keep it realistic - these should be names real people might have
-4. Consider international names that match the username's style
-5. Return ONLY the full name, nothing else
-
-EXAMPLES:
-- "j-schroder" → "Jordan Schröder"
-- "kalindi_rainbows" → "Kalindi Raine"
-- "gwangurl77" → "Gwang-Min Park"
-- "mishka_songs" → "Mishka Sanchez"
-- "pierre_thecomet" → "Pierre Comeau"
-- "silvaqueen15" → "Silva Quinn"
-- "alo.daiane1" → "Daiane Alonso"
-- "seoyeonseoul" → "Seo-Yeon Kim"
-- "nora.needs.cheese" → "Nora Chase"
-- "stellas_gr00v3" → "Stella Grove"`;
-
-      const userPrompt = `Generate a realistic full name for the username: "${username}"
-
-Return ONLY the name, no quotes, no explanation.`;
-
-      try {
-        const apiUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://api.llama.com/v1/chat/completions');
-
-        const response = await fetchWithTimeout(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${LLAMA_API_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'Llama-4-Maverick-17B-128E-Instruct-FP8',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt }
-            ],
-            max_tokens: 50,
-            temperature: 0.8
-          })
-        });
-
-        if (!response.ok) {
-          let errorText = '';
-          try {
-            errorText = await response.text();
-          } catch (e) {
-            errorText = 'Unable to read error response';
-          }
-          throw parseAPIError(response.status, errorText);
-        }
-
-        const data = await response.json();
-
-        if (data.choices && data.choices[0] && data.choices[0].message) {
-          const generatedName = data.choices[0].message.content.trim();
-          console.log(`[NAME GEN] Generated name: ${generatedName}`);
-          return generatedName;
-        }
-
-        throw new LlamaAPIError('Empty response from Llama API.', 'parse', JSON.stringify(data));
-      } catch (error) {
-        console.error('[NAME GEN] Error generating name:', error);
-        // Fallback: Create a simple name from the username
-        const fallbackName = createFallbackName(username);
-        console.log(`[NAME GEN] Using fallback name: ${fallbackName}`);
-        return fallbackName;
-      }
-    }
-
-    // Create a fallback name if Llama API fails
-    function createFallbackName(username) {
-      // Remove numbers and special characters, split by common delimiters
-      const cleaned = username.replace(/[0-9_.-]/g, ' ').trim();
-      const parts = cleaned.split(/\s+/).filter(p => p.length > 0);
-
-      if (parts.length === 0) {
-        return 'Alex User';
-      }
-
-      // Capitalize each part
-      const capitalized = parts.map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase());
-
-      if (capitalized.length === 1) {
-        return capitalized[0] + ' Smith';
-      }
-
-      return capitalized.slice(0, 2).join(' ');
-    }
-
     // Chat type radio button handlers
     chatTypeRadios.forEach(radio => {
-      radio.addEventListener('change', async (e) => {
+      radio.addEventListener('change', (e) => {
         const selectedValue = e.target.value;
         userSelectedChatType = selectedValue;
 
@@ -642,30 +523,20 @@ Return ONLY the name, no quotes, no explanation.`;
           groupSizeContainer.style.display = 'block';
           isGroupChat = true;
           participants = parseInt(groupSizeSelect.value);
-
-          // Send message to plugin to toggle to Group Chat
-          parent.postMessage({
-            pluginMessage: {
-              type: 'toggle-chat-type',
-              isGroupChat: true,
-              participants: participants
-            }
-          }, '*');
         } else {
           groupSizeContainer.style.display = 'none';
           isGroupChat = false;
           participants = 2;
-
-          // For 1:1 chat, we need to generate a name using Llama
-          // First send the toggle message, then wait for profile info
-          parent.postMessage({
-            pluginMessage: {
-              type: 'toggle-chat-type',
-              isGroupChat: false,
-              participants: 2
-            }
-          }, '*');
         }
+
+        // Send message to plugin to toggle the component property
+        parent.postMessage({
+          pluginMessage: {
+            type: 'toggle-chat-type',
+            isGroupChat: isGroupChat,
+            participants: participants
+          }
+        }, '*');
       });
     });
 
@@ -673,7 +544,6 @@ Return ONLY the name, no quotes, no explanation.`;
     groupSizeSelect.addEventListener('change', (e) => {
       participants = parseInt(e.target.value);
 
-      // Send message to plugin to update participant count
       parent.postMessage({
         pluginMessage: {
           type: 'update-participants',
@@ -706,26 +576,22 @@ Return ONLY the name, no quotes, no explanation.`;
       family: "THREE family members or close friends in a group chat. All messages should be addressed to the ENTIRE GROUP. They share updates, coordinate plans, and check in on everyone with warmth."
     };
 
-    // Topic button selection
-    topicBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        topicBtns.forEach(b => b.classList.remove('selected'));
-        btn.classList.add('selected');
-        selectedTopic = btn.dataset.topic;
-        // Clear custom topic when selecting a preset
-        customTopic = null;
-        customTopicInput.value = '';
-        customTopicInput.classList.remove('active');
-        updateGenerateButton();
-      });
+    // Topic dropdown selection
+    topicSelect.addEventListener('change', () => {
+      selectedTopic = topicSelect.value;
+      topicSelect.classList.add('selected');
+      customTopic = null;
+      customTopicInput.value = '';
+      customTopicInput.classList.remove('active');
+      updateGenerateButton();
     });
 
     // Custom topic input handling
     customTopicInput.addEventListener('input', () => {
       const value = customTopicInput.value.trim();
       if (value.length > 0) {
-        // Deselect preset topics when typing custom topic
-        topicBtns.forEach(b => b.classList.remove('selected'));
+        topicSelect.value = '';
+        topicSelect.classList.remove('selected');
         selectedTopic = null;
         customTopic = value;
         customTopicInput.classList.add('active');
@@ -736,7 +602,6 @@ Return ONLY the name, no quotes, no explanation.`;
       updateGenerateButton();
     });
 
-    // Also handle focus/blur for better UX
     customTopicInput.addEventListener('focus', () => {
       if (customTopicInput.value.trim().length > 0) {
         customTopicInput.classList.add('active');
@@ -748,17 +613,14 @@ Return ONLY the name, no quotes, no explanation.`;
       generateBtn.disabled = !(hasTopicSelected && currentStructure && currentStructure.length > 0);
     }
 
-    // Request structure analysis when plugin loads
     function requestStructureAnalysis() {
       parent.postMessage({
         pluginMessage: { type: 'analyze-structure' }
       }, '*');
     }
 
-    // Timeout duration for API calls (30 seconds)
     const API_TIMEOUT_MS = 30000;
 
-    // Custom error class for better error categorization
     class LlamaAPIError extends Error {
       constructor(message, type, details = null) {
         super(message);
@@ -768,7 +630,6 @@ Return ONLY the name, no quotes, no explanation.`;
       }
     }
 
-    // Fetch with timeout wrapper
     async function fetchWithTimeout(url, options, timeoutMs = API_TIMEOUT_MS) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -792,7 +653,6 @@ Return ONLY the name, no quotes, no explanation.`;
       }
     }
 
-    // Parse and categorize API errors
     function parseAPIError(status, errorText) {
       switch (status) {
         case 401:
@@ -811,21 +671,16 @@ Return ONLY the name, no quotes, no explanation.`;
       }
     }
 
-    // Call Llama API to generate conversation based on structure
     async function generateConversationWithLlama(topic, structure, isCustomTopic = false) {
-      // Determine the topic prompt based on whether it's custom or preset
       let topicPrompt;
       if (isCustomTopic) {
-        // For custom topics, create a dynamic prompt based on user input
         topicPrompt = isGroupChat
           ? `THREE friends in a group chat discussing: ${topic}. All messages should be addressed to the ENTIRE GROUP. They engage naturally with each other about this topic, sharing thoughts, reactions, and building on each other's points.`
           : `two friends texting about: ${topic}. They engage naturally with each other about this topic, sharing thoughts, reactions, and building on each other's points with casual, authentic messaging style.`;
       } else {
-        // Use preset topic prompts
         topicPrompt = isGroupChat ? topicPrompts3Person[topic] : topicPrompts2Person[topic];
       }
 
-      // Build the exact message pattern from structure with person labels
       const messagePattern = structure.map((s, i) => {
         return `Message ${i + 1}: Person ${s.person}`;
       }).join('\n');
@@ -918,7 +773,6 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
           throw new LlamaAPIError('Failed to parse API response.', 'parse', e.message);
         }
 
-        // Extract the text from Llama response
         let responseText = '';
         if (data.completion_message && data.completion_message.content) {
           responseText = data.completion_message.content.text || data.completion_message.content;
@@ -932,11 +786,7 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
           throw new LlamaAPIError('Empty response from Llama API.', 'parse', JSON.stringify(data));
         }
 
-        // Parse the JSON array from the response
-        // First, try to extract JSON from markdown code blocks if present
         let cleanedResponse = responseText;
-
-        // Remove markdown code block wrappers (```json ... ``` or ``` ... ```)
         const codeBlockMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
         if (codeBlockMatch) {
           cleanedResponse = codeBlockMatch[1].trim();
@@ -950,22 +800,15 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
 
         let messages;
         try {
-          // First attempt: direct parse
           messages = JSON.parse(jsonMatch[0]);
         } catch (e) {
-          // Second attempt: sanitize common issues
           try {
             let sanitized = jsonMatch[0]
-              // Remove trailing commas before ] or }
               .replace(/,\s*([\]}])/g, '$1')
-              // Fix unescaped newlines in strings
               .replace(/([^\\])\\n/g, '$1\\\\n')
-              // Replace actual newlines in strings with spaces
               .replace(/"([^"]*)\n([^"]*)"/g, '"$1 $2"');
-
             messages = JSON.parse(sanitized);
           } catch (e2) {
-            // Third attempt: extract individual strings manually
             try {
               const stringMatches = jsonMatch[0].match(/"([^"\\]*(\\.[^"\\]*)*)"/g);
               if (stringMatches && stringMatches.length > 0) {
@@ -984,7 +827,6 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
           throw new LlamaAPIError('Invalid conversation format received.', 'parse', JSON.stringify(messages));
         }
 
-        // Ensure sentence case for all messages
         return messages.map(text => {
           const str = String(text).trim();
           if (str.length === 0) return str;
@@ -1020,12 +862,10 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
       showStatus('Analyzing structure and generating conversation...', 'info');
 
       try {
-        // Determine which topic to use and whether it's custom
         const topicToUse = customTopic || selectedTopic;
         const isCustom = !!customTopic;
         const messages = await generateConversationWithLlama(topicToUse, currentStructure, isCustom);
 
-        // Send the generated messages to the plugin
         parent.postMessage({
           pluginMessage: {
             type: 'populate-conversation',
@@ -1050,17 +890,12 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
       const msg = event.data.pluginMessage;
       if (!msg) return;
 
-      // Debug: log all incoming messages
-      console.log(`[UI] Received message type: ${msg.type}`, msg);
-
       if (msg.type === 'structure-analyzed') {
         currentStructure = msg.structure;
-        patternDescription = msg.patternDescription;
         isGroupChat = msg.isGroupChat || false;
         participants = msg.participants || 2;
         updateGenerateButton();
 
-        // Sync the radio buttons with the detected chat type (only if user hasn't manually selected)
         if (userSelectedChatType === null) {
           const oneToOneRadio = document.querySelector('input[name="chat-type"][value="1:1"]');
           const groupRadio = document.querySelector('input[name="chat-type"][value="group"]');
@@ -1075,38 +910,8 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
           }
         }
 
-const chatType = isGroupChat ? '👥 Group Chat (3 people)' : '💬 1:1 Chat';
+        const chatType = isGroupChat ? '👥 Group Chat (3 people)' : '💬 1:1 Chat';
         showStatus(`Found ${msg.totalBubbles} bubbles — ${chatType}`, 'info');
-        // Don't auto-hide - keep the status visible so user knows their selection is valid
-      } else if (msg.type === 'generate-header-name') {
-        // Received request from code.js to generate a name from username
-        const username = msg.username;
-        console.log(`[UI] Received request to generate name for username: ${username}`);
-
-        try {
-          const generatedName = await generateNameFromUsername(username);
-          console.log(`[UI] Generated name: ${generatedName}, sending back to code.js`);
-
-          // Send the generated name back to code.js
-          parent.postMessage({
-            pluginMessage: {
-              type: 'update-header-text',
-              username: username,
-              generatedName: generatedName
-            }
-          }, '*');
-        } catch (error) {
-          console.error('[UI] Error generating name:', error);
-          // Use fallback name
-          const fallbackName = createFallbackName(username);
-          parent.postMessage({
-            pluginMessage: {
-              type: 'update-header-text',
-              username: username,
-              generatedName: fallbackName
-            }
-          }, '*');
-        }
       } else if (msg.type === 'success') {
         showStatus(msg.message || 'Conversation generated successfully!', 'success');
         generateBtn.disabled = false;
@@ -1116,7 +921,6 @@ const chatType = isGroupChat ? '👥 Group Chat (3 people)' : '💬 1:1 Chat';
         generateBtn.disabled = false;
         generateBtn.textContent = 'Generate conversation';
 
-        // If it's a selection error, clear structure
         if (msg.message && msg.message.includes('select')) {
           currentStructure = null;
           updateGenerateButton();
@@ -1129,14 +933,8 @@ const chatType = isGroupChat ? '👥 Group Chat (3 people)' : '💬 1:1 Chat';
       statusBar.className = 'status-bar ' + type;
     }
 
-    function hideStatus() {
-      statusBar.className = 'status-bar';
-    }
-
-    // Request initial structure analysis
     requestStructureAnalysis();
 
-    // Re-analyze when window gains focus (user might have changed selection)
     window.addEventListener('focus', () => {
       requestStructureAnalysis();
     });

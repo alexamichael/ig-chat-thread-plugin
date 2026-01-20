@@ -546,7 +546,6 @@ function findProfileInBlock(blockNode) {
     if (depth > 25) return; // Increased depth for very deep nesting
     if (foundPerson) return; // Stop if already found
 
-    const name = node.name.toLowerCase();
     const nodeType = node.type;
     const currentPath = path ? `${path} > ${node.name}` : node.name;
 
@@ -1311,7 +1310,7 @@ function structureToPatternDescription(structure) {
   groups.push({ type: currentType, count });
 
   // Convert to description
-  return groups.map((g, i) => {
+  return groups.map((g) => {
     const person = g.type === 'sender' ? 'Person A (sender/you)' : 'Person B (recipient/other person)';
     return `${g.count} message${g.count > 1 ? 's' : ''} from ${person}`;
   }).join(', then ');

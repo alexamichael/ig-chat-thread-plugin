@@ -48,6 +48,22 @@ const PROFILE_VARIANTS = [
   'maiara_praia1'
 ];
 
+// ============================================================================
+// EMOJI COMPONENT KEYS
+// Hard-coded component keys from the MDS-iOS-Emojis library
+// These are used to swap emoji in reactions
+// ============================================================================
+const EMOJI_COMPONENT_KEYS = {
+  'Grinning Face with Big Eyes': 'ed87fe389f3024b42ab37bf1f962a51780f90748',
+  'Red Heart': 'd1cf9ecd97edf5b131f6975ec133644b888d85aa',
+  'Thumbs Up': 'ad40ef25df39f32ea39b6f90b2a23697ae68ad82',
+  'Purple Heart': 'c3a06a077d09d96d2ef67ba9e546d50ba677ce14',
+  'Fire': '9af07ac82f5a657eee481d75e5c069355fc54121',
+  'Pouting Face': '09236c1257bc0920088a2a8ed7f81fbc271d08d4',
+  'Face Screaming in Fear': 'd749e887b72bb762f6adb2eec1d33994c05fe752',
+  'Face with Tears of Joy': '1a7453323b4a23490c0569f88f2e1ec33d832aca'
+};
+
 /**
  * Pick N random unique profiles from the available variants
  */
@@ -1378,10 +1394,857 @@ figma.on('selectionchange', () => {
 });
 
 // ============================================================================
+// DIAGNOSTIC: Log all component properties in a Chat Thread
+// Run this to discover reaction properties
+// ============================================================================
+
+function diagnosticLogAllProperties(node, maxDepth = 15) {
+  const results = {
+    instances: [],
+    summary: {}
+  };
+
+  function search(n, depth = 0, path = '') {
+    if (depth > maxDepth) return;
+
+    const currentPath = path ? `${path} > ${n.name}` : n.name;
+    const nameLower = n.name.toLowerCase();
+
+    // Log all INSTANCE nodes with their properties
+    if (n.type === 'INSTANCE') {
+      try {
+        const props = n.componentProperties;
+        const propKeys = Object.keys(props);
+        const propDetails = {};
+
+        for (const key of propKeys) {
+          const prop = props[key];
+          propDetails[key] = {
+            type: prop.type,
+            value: prop.value
+          };
+
+          // Track property names for summary
+          if (!results.summary[key]) {
+            results.summary[key] = { count: 0, values: new Set(), types: new Set() };
+          }
+          results.summary[key].count++;
+          results.summary[key].values.add(String(prop.value));
+          results.summary[key].types.add(prop.type);
+        }
+
+        // Check if this might be reaction-related
+        const isReactionRelated = nameLower.includes('reaction') ||
+                                   nameLower.includes('emoji') ||
+                                   propKeys.some(k => k.toLowerCase().includes('reaction')) ||
+                                   propKeys.some(k => k.toLowerCase().includes('emoji'));
+
+        if (isReactionRelated || propKeys.length > 0) {
+          results.instances.push({
+            name: n.name,
+            path: currentPath,
+            depth: depth,
+            isReactionRelated: isReactionRelated,
+            properties: propDetails
+          });
+        }
+      } catch (e) {
+        // Skip nodes we can't read
+      }
+    }
+
+    if ('children' in n) {
+      for (const child of n.children) {
+        search(child, depth + 1, currentPath);
+      }
+    }
+  }
+
+  search(node);
+
+  // Log reaction-related instances first
+  console.log('='.repeat(80));
+  console.log('DIAGNOSTIC: Component Properties Analysis');
+  console.log('='.repeat(80));
+
+  const reactionInstances = results.instances.filter(i => i.isReactionRelated);
+  if (reactionInstances.length > 0) {
+    console.log('\n🎯 REACTION-RELATED COMPONENTS FOUND:');
+    for (const inst of reactionInstances) {
+      console.log(`\n  📦 "${inst.name}" (depth: ${inst.depth})`);
+      console.log(`     Path: ${inst.path}`);
+      console.log(`     Properties:`);
+      for (const [key, val] of Object.entries(inst.properties)) {
+        console.log(`       - ${key}: ${val.value} (${val.type})`);
+      }
+    }
+  } else {
+    console.log('\n⚠️ No obviously reaction-related components found.');
+    console.log('   Looking for components with interesting properties...');
+  }
+
+  // Log property summary
+  console.log('\n📊 PROPERTY SUMMARY (all properties found):');
+  const sortedProps = Object.entries(results.summary)
+    .sort((a, b) => b[1].count - a[1].count);
+
+  for (const [propName, data] of sortedProps) {
+    const values = Array.from(data.values).slice(0, 5).join(', ');
+    const moreValues = data.values.size > 5 ? ` (+${data.values.size - 5} more)` : '';
+    console.log(`  ${propName}: ${data.count}x, values: [${values}${moreValues}]`);
+  }
+
+  console.log('\n' + '='.repeat(80));
+  console.log('END DIAGNOSTIC');
+  console.log('='.repeat(80));
+
+  return results;
+}
+
+// ============================================================================
+// REACTIONS: Find Text chat components and apply reactions
+// ============================================================================
+
+/**
+ * Available emoji for reactions - these map to Figma component names
+ */
+const REACTION_EMOJI = [
+  { name: 'Red Heart', keywords: ['love', 'heart', 'miss', 'care', 'sweet', 'cute', 'aww', 'babe', 'baby', 'xo', '❤️', 'thanks', 'thank', 'appreciate', 'grateful', 'best', 'amazing'] },
+  { name: 'Purple Heart', keywords: ['love', 'purple', 'fave', 'favorite', 'bestie', 'bff', 'always', 'forever'] },
+  { name: 'Fire', keywords: ['fire', 'hot', 'lit', 'amazing', 'insane', 'crazy', 'sick', 'dope', 'heat', 'flames', 'killing', 'slay', 'ate', 'served', 'iconic'] },
+  { name: 'Face with Tears of Joy', keywords: ['lol', 'lmao', 'haha', 'hilarious', 'funny', 'dead', 'dying', 'crying', 'joke', 'omg', 'bruh', 'bro', 'stop', 'cant', "can't", 'wheeze', '😂', 'jk', 'kidding'] },
+  { name: 'Loudly Crying Face', keywords: ['sad', 'cry', 'crying', 'sob', 'miss', 'wish', 'ugh', 'hate', 'worst', 'terrible', 'awful', 'no', 'whyy', 'pain', 'hurt', 'lonely', 'depressed'] },
+  { name: 'Smiling Face with Heart-Eyes', keywords: ['love', 'gorgeous', 'beautiful', 'pretty', 'handsome', 'hot', 'cute', 'obsessed', 'perfect', 'goals', 'wow', 'stunning', 'dreamy', 'crush'] },
+  { name: 'Thumbs Up', keywords: ['ok', 'okay', 'sure', 'yes', 'yep', 'yeah', 'good', 'cool', 'nice', 'great', 'sounds', 'bet', 'works', 'done', 'got it', 'gotcha', 'perfect', 'agree', 'down'] },
+  { name: 'Clapping Hands', keywords: ['congrats', 'congratulations', 'proud', 'amazing', 'awesome', 'incredible', 'well done', 'bravo', 'yay', 'finally', 'win', 'won', 'did it', 'made it', 'achieved'] },
+  { name: 'Folded Hands', keywords: ['please', 'pray', 'hope', 'thanks', 'thank', 'grateful', 'bless', 'wish', 'fingers crossed', 'hopefully', 'praying', 'amen'] },
+  { name: 'Hundred Points', keywords: ['100', 'facts', 'true', 'truth', 'exactly', 'real', 'agree', 'right', 'perfect', 'spot on', 'accurate', 'legit', 'fr', 'no cap', 'period'] },
+  { name: 'Face Screaming in Fear', keywords: ['omg', 'what', 'shocked', 'surprised', 'crazy', 'insane', 'cant believe', "can't believe", 'no way', 'seriously', 'shook', 'wild', 'unreal', 'wtf', 'wait'] },
+  { name: 'Sparkles', keywords: ['new', 'exciting', 'special', 'magic', 'amazing', 'beautiful', 'aesthetic', 'vibes', 'perfect', 'love', 'yay', 'finally', 'dream', 'happy', 'blessed'] }
+];
+
+/**
+ * Pick a contextual emoji from ONLY the discovered available emoji
+ * @param {string} messageText - The text content of the message
+ * @param {Map} emojiMap - Map of discovered emoji names to component keys
+ * @returns {string} - The emoji name to use
+ */
+function pickContextualEmojiFromAvailable(messageText, emojiMap) {
+  // Get the list of available emoji names
+  const availableEmoji = Array.from(emojiMap.keys());
+
+  if (availableEmoji.length === 0) {
+    return 'Red Heart'; // Fallback if nothing discovered
+  }
+
+  if (!messageText || messageText.trim().length === 0) {
+    // Random from available
+    const picked = availableEmoji[Math.floor(Math.random() * availableEmoji.length)];
+    console.log(`[EMOJI PICK] No text, random pick: "${picked}"`);
+    return picked;
+  }
+
+  const textLower = messageText.toLowerCase();
+
+  // Define keyword mappings for common emoji names
+  // Categories match parts of emoji names (e.g., "heart" matches "Red Heart", "Purple Heart")
+  const emojiKeywords = {
+    'heart': ['love', 'heart', 'miss', 'care', 'sweet', 'cute', 'aww', 'thanks', 'thank', 'appreciate', 'best', 'amazing', 'babe', 'baby', 'xo', '❤️', 'ily', 'luv', 'adore', 'beautiful', 'gorgeous', 'pretty'],
+    'purple': ['purple', 'fave', 'favorite', 'bestie', 'bff', 'always', 'forever', 'queen', 'slay', 'iconic'],
+    'thumbs': ['ok', 'okay', 'sure', 'yes', 'yep', 'yeah', 'good', 'cool', 'nice', 'great', 'sounds', 'bet', 'works', 'done', 'got it', 'agree', 'down', 'perfect', 'fine', 'alright', 'np', 'no problem', 'kk', 'k'],
+    'grinning': ['lol', 'haha', 'hehe', 'funny', 'hilarious', 'joke', 'laugh', 'silly', 'goofy', ':)', '😊', 'happy', 'yay', 'excited'],
+    'joy': ['lol', 'lmao', 'haha', 'hahaha', 'hilarious', 'funny', 'dead', 'dying', 'crying', 'joke', 'omg', 'bruh', 'bro', 'stop', 'im dead', "i'm dead", 'wheeze', '😂', 'jk', 'kidding', 'rofl'],
+    'fire': ['fire', 'hot', 'lit', 'amazing', 'insane', 'crazy', 'sick', 'dope', 'slay', 'ate', 'served', 'heat', 'flames', 'killing it', 'goat', 'legendary', 'epic', 'wild', 'bussin'],
+    'crying': ['sad', 'cry', 'crying', 'sob', 'miss you', 'ugh', 'hate', 'worst', 'terrible', 'awful', 'depressed', 'lonely', 'pain', 'hurt'],
+    'pouting': ['mad', 'angry', 'annoyed', 'frustrated', 'ugh', 'hate', 'annoying', 'irritated', 'pissed', 'wtf', 'seriously', 'really'],
+    'scream': ['omg', 'what', 'shocked', 'surprised', 'no way', 'shook', 'wtf', 'wait', 'hold up', 'excuse me', 'are you serious', 'cant believe', "can't believe", 'unreal', 'insane', 'crazy', 'wild'],
+    'sparkle': ['new', 'exciting', 'special', 'magic', 'beautiful', 'perfect', 'aesthetic', 'vibes', 'blessed', 'dream', 'finally', 'yay'],
+    'clap': ['congrats', 'proud', 'amazing', 'awesome', 'yay', 'finally', 'win', 'won', 'did it', 'made it', 'achieved', 'bravo'],
+    'pray': ['please', 'pray', 'hope', 'thanks', 'grateful', 'bless', 'fingers crossed', 'hopefully', 'amen'],
+    'hundred': ['100', 'facts', 'true', 'exactly', 'real', 'agree', 'fr', 'no cap', 'period', 'literally', 'so true', 'right'],
+    'eyes': ['lol', 'haha', 'funny', 'wow', 'omg', 'look', 'see', 'check']
+  };
+
+  // Score each available emoji
+  const scores = availableEmoji.map(emojiName => {
+    const nameLower = emojiName.toLowerCase();
+    let score = 0;
+
+    // Check each keyword category
+    for (const [category, keywords] of Object.entries(emojiKeywords)) {
+      // If this emoji name contains the category keyword
+      if (nameLower.includes(category)) {
+        // Check if the message contains any of the keywords
+        for (const keyword of keywords) {
+          if (textLower.includes(keyword)) {
+            score += 1;
+            if (keyword.length > 4) score += 0.5;
+          }
+        }
+      }
+    }
+
+    return { name: emojiName, score };
+  });
+
+  // Sort by score
+  scores.sort((a, b) => b.score - a.score);
+
+  // If we have matches, pick from top scorers
+  if (scores[0].score > 0) {
+    const topScore = scores[0].score;
+    const topEmoji = scores.filter(s => s.score >= topScore * 0.7 && s.score > 0);
+    const picked = topEmoji[Math.floor(Math.random() * topEmoji.length)].name;
+    console.log(`[EMOJI PICK] Text: "${textLower.substring(0, 50)}..." → picked "${picked}" (score: ${topScore})`);
+    return picked;
+  }
+
+  // No matches - pick random from available
+  const randomPick = availableEmoji[Math.floor(Math.random() * availableEmoji.length)];
+  console.log(`[EMOJI PICK] No keyword match for "${textLower.substring(0, 30)}...", random: "${randomPick}"`);
+  return randomPick;
+}
+
+/**
+ * Find all chat components that can have reactions within a Chat Thread
+ * This includes: Text chat, Media chat, and External link components
+ * These are the components that have the Reaction boolean property
+ */
+function findAllReactableChatComponents(node) {
+  const chatComponents = [];
+
+  function search(n, depth = 0) {
+    if (depth > 10) return;
+
+    const name = n.name.toLowerCase();
+
+    // Look for "Text chat", "Media chat", or "External link" components
+    if ((name.includes('text chat') || name.includes('media chat') || name.includes('external link')) && n.type === 'INSTANCE') {
+      chatComponents.push(n);
+      return; // Don't recurse into these components
+    }
+
+    if ('children' in n) {
+      for (const child of n.children) {
+        search(child, depth + 1);
+      }
+    }
+  }
+
+  search(node);
+  return chatComponents;
+}
+
+/**
+ * Find all Text chat components within a Chat Thread
+ * These are the components that have the Reaction boolean property
+ */
+function findTextChatComponents(node) {
+  const textChats = [];
+
+  function search(n, depth = 0) {
+    if (depth > 10) return;
+
+    const name = n.name.toLowerCase();
+
+    // Look for "Text chat" components
+    if (name.includes('text chat') && n.type === 'INSTANCE') {
+      textChats.push(n);
+      return; // Don't recurse into Text chat components
+    }
+
+    if ('children' in n) {
+      for (const child of n.children) {
+        search(child, depth + 1);
+      }
+    }
+  }
+
+  search(node);
+  return textChats;
+}
+
+/**
+ * Set the Reaction property on a Text chat component
+ * Also sets the Reactions variant to "1" for 1:1 chats (single emoji)
+ * @param {SceneNode} textChatNode - The Text chat component
+ * @param {boolean} enabled - Whether to enable or disable the reaction
+ * @param {boolean} isGroupChat - Whether this is a group chat
+ * @param {string[]} emojiList - Array of emoji names to randomly pick from
+ * @param {Map} emojiMap - Map of emoji names to component keys (optional)
+ */
+function setReactionOnTextChat(textChatNode, enabled, isGroupChat = false, emojiList = ['Red Heart'], emojiMap = null) {
+  if (textChatNode.type !== 'INSTANCE') {
+    return false;
+  }
+
+  try {
+    const props = textChatNode.componentProperties;
+    const propKeys = Object.keys(props);
+
+    // Find the Reaction boolean property (format: "Reaction#131467:0")
+    let reactionKey = null;
+    for (const key of propKeys) {
+      if (key.toLowerCase().includes('reaction') && props[key].type === 'BOOLEAN') {
+        reactionKey = key;
+        break;
+      }
+    }
+
+    if (reactionKey) {
+      textChatNode.setProperties({ [reactionKey]: enabled });
+
+      // If enabling reaction, also find and set the nested .Chat reaction component
+      if (enabled) {
+        setChatReactionVariant(textChatNode, isGroupChat, emojiList, emojiMap);
+      }
+
+      return true;
+    } else {
+      return false;
+    }
+  } catch (error) {
+    console.error(`[REACTION] Error setting reaction:`, error);
+    return false;
+  }
+}
+
+/**
+ * Discover emoji component IDs by finding existing emoji instances in the ENTIRE PAGE
+ * This searches beyond just the selected thread to find more emoji variety
+ * Returns a map of emoji names to their component keys
+ */
+function discoverEmojiComponentIds(threadNode) {
+  const emojiMap = new Map();
+
+  function search(node, depth = 0) {
+    if (depth > 25) return;
+
+    const name = node.name.toLowerCase();
+
+    // Look for emoji-related components
+    if (node.type === 'INSTANCE') {
+      try {
+        // Check if this node's name suggests it's an emoji
+        const emojiKeywords = ['heart', 'fire', 'joy', 'crying', 'thumbs', 'clap', 'pray', 'hundred', 'scream', 'sparkle', 'emoji', 'face', 'grinning', 'smiling', 'beaming', 'sunglasses', 'eyes'];
+        const isEmojiByName = emojiKeywords.some(k => name.includes(k));
+
+        if (isEmojiByName && node.mainComponent) {
+          const mainComp = node.mainComponent;
+          const compName = mainComp.name;
+          const compKey = mainComp.key || mainComp.id;
+
+          if (compKey && !emojiMap.has(compName)) {
+            emojiMap.set(compName, compKey);
+            console.log(`[EMOJI DISCOVER] Found: "${compName}" → ${compKey}`);
+          }
+        }
+
+        // Also check INSTANCE_SWAP properties for emoji references
+        const props = node.componentProperties;
+        for (const key of Object.keys(props)) {
+          if (key.toLowerCase().includes('emoji') && props[key].type === 'INSTANCE_SWAP') {
+            const currentValue = props[key].value;
+            if (currentValue) {
+              // Try to get the component from this ID
+              try {
+                const compNode = figma.getNodeById(currentValue);
+                if (compNode && (compNode.type === 'COMPONENT' || compNode.type === 'INSTANCE')) {
+                  const compName = compNode.name;
+                  const compKey = compNode.type === 'COMPONENT' ? (compNode.key || compNode.id) : currentValue;
+                  if (!emojiMap.has(compName)) {
+                    emojiMap.set(compName, compKey);
+                    console.log(`[EMOJI DISCOVER] Found via INSTANCE_SWAP: "${compName}" → ${compKey}`);
+                  }
+                }
+              } catch (e) {
+                // Could not get node by ID
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // Skip nodes we can't read
+      }
+    }
+
+    if ('children' in node) {
+      for (const child of node.children) {
+        search(child, depth + 1);
+      }
+    }
+  }
+
+  // Only search the selected thread (not entire page - that's slow)
+  // Hard-coded keys cover the main emoji, discovery just finds any extras
+  search(threadNode);
+
+  // Log summary
+  console.log(`[EMOJI DISCOVER] Found ${emojiMap.size} additional emoji in thread`);
+
+  return emojiMap;
+}
+
+/**
+ * Find the .Chat reaction component nested within a Text chat and set its Reactions variant
+ * For 1:1 chats, we set Reactions to "1" (single emoji)
+ * For group chats, we could randomize between "1", "2", "3"
+ * @param {SceneNode} textChatNode - The Text chat component
+ * @param {boolean} isGroupChat - Whether this is a group chat
+ * @param {string[]} emojiList - Array of emoji names to use
+ * @param {Map} emojiMap - Map of emoji names to component keys (optional)
+ */
+function setChatReactionVariant(textChatNode, isGroupChat = false, emojiList = ['Red Heart'], emojiMap = null) {
+  function findChatReaction(node, depth = 0) {
+    if (depth > 15) return null;
+
+    const name = node.name.toLowerCase();
+
+    // Look for ".Chat reaction" component
+    if (name.includes('chat reaction') && node.type === 'INSTANCE') {
+      return node;
+    }
+
+    if ('children' in node) {
+      for (const child of node.children) {
+        const result = findChatReaction(child, depth + 1);
+        if (result) return result;
+      }
+    }
+
+    return null;
+  }
+
+  const chatReactionNode = findChatReaction(textChatNode);
+
+  if (!chatReactionNode) {
+    return false;
+  }
+
+  try {
+    const props = chatReactionNode.componentProperties;
+    const propKeys = Object.keys(props);
+
+    // Find the Reactions variant property
+    let reactionsKey = null;
+    for (const key of propKeys) {
+      if (key.toLowerCase() === 'reactions' && props[key].type === 'VARIANT') {
+        reactionsKey = key;
+        break;
+      }
+    }
+
+    if (reactionsKey) {
+      // For 1:1 chats, always use "1" (single emoji)
+      const reactionCount = isGroupChat ? String(Math.floor(Math.random() * 2) + 1) : "1";
+      chatReactionNode.setProperties({ [reactionsKey]: reactionCount });
+    }
+
+    // If we have an emoji map, try to swap emoji
+    if (emojiMap && emojiMap.size > 0 && emojiList.length > 0) {
+      console.log(`[EMOJI SWAP] Attempting swap with emojiList:`, emojiList);
+      console.log(`[EMOJI SWAP] Available in emojiMap:`, Array.from(emojiMap.keys()));
+
+      // Find emoji INSTANCE_SWAP properties
+      for (const key of propKeys) {
+        if (key.toLowerCase().includes('emoji') && props[key].type === 'INSTANCE_SWAP') {
+          console.log(`[EMOJI SWAP] Found INSTANCE_SWAP property: "${key}", current value: ${props[key].value}`);
+
+          // Pick the emoji from the list (should be the contextually chosen one)
+          const targetEmojiName = emojiList[0];
+          console.log(`[EMOJI SWAP] Target emoji: "${targetEmojiName}"`);
+
+          // Find the matching component key from our discovered map
+          let foundKey = null;
+          let foundName = null;
+          for (const [name, compKey] of emojiMap.entries()) {
+            if (name.toLowerCase() === targetEmojiName.toLowerCase() ||
+                name.toLowerCase().includes(targetEmojiName.toLowerCase()) ||
+                targetEmojiName.toLowerCase().includes(name.toLowerCase())) {
+              foundKey = compKey;
+              foundName = name;
+              break;
+            }
+          }
+
+          if (foundKey) {
+            console.log(`[EMOJI SWAP] Found matching key for "${foundName}": ${foundKey}`);
+            try {
+              chatReactionNode.setProperties({ [key]: foundKey });
+              console.log(`[EMOJI SWAP] ✓ Successfully set ${key} to ${foundKey}`);
+            } catch (e) {
+              console.log(`[EMOJI SWAP] ✗ Failed to set property:`, e.message);
+            }
+          } else {
+            console.log(`[EMOJI SWAP] ✗ No matching key found for "${targetEmojiName}"`);
+          }
+          break; // Only set the first emoji property for 1:1 chats
+        }
+      }
+    } else {
+      console.log(`[EMOJI SWAP] Skipped - emojiMap size: ${emojiMap ? emojiMap.size : 0}, emojiList length: ${emojiList ? emojiList.length : 0}`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error(`[REACTION] Error setting reaction variant:`, error);
+    return false;
+  }
+}
+
+/**
+ * Find an emoji component by its name
+ * Returns the component key/id that can be used for INSTANCE_SWAP
+ * @param {string} emojiName - The name of the emoji (e.g., "Red Heart", "Fire")
+ */
+function findEmojiComponentByName(emojiName) {
+  // First, try to find the component in the current page's components
+  const searchName = emojiName.toLowerCase();
+
+  function searchForComponent(node, depth = 0) {
+    if (depth > 3) return null;
+
+    // Check if this is a component or component set with matching name
+    if ((node.type === 'COMPONENT' || node.type === 'COMPONENT_SET') &&
+        node.name.toLowerCase().includes(searchName)) {
+      console.log(`[EMOJI SEARCH] Found matching component: "${node.name}" (${node.type}), key: ${node.key}`);
+      return node.key || node.id;
+    }
+
+    if ('children' in node) {
+      for (const child of node.children) {
+        const result = searchForComponent(child, depth + 1);
+        if (result) return result;
+      }
+    }
+
+    return null;
+  }
+
+  // Search in the current page first
+  const pageResult = searchForComponent(figma.currentPage);
+  if (pageResult) return pageResult;
+
+  // If not found, we can't easily search libraries without more context
+  // The emoji components are likely from a library, so we need to use
+  // the actual component IDs from the existing instance
+
+  console.log(`[EMOJI SEARCH] Could not find component for "${emojiName}" in current page`);
+  return null;
+}
+
+/**
+ * Apply reactions to all reactable chat components with randomized spacing
+ * Includes: Text chat, Media chat, and External link components
+ * - 25% (Some): Approximately every 4-5 messages (randomized)
+ * - 50% (Lots): Approximately every 2 messages (randomized)
+ * @param {SceneNode} threadNode - The chat thread node
+ * @param {number} percentage - Percentage level (25 = Some, 50 = Lots)
+ * @param {boolean} isGroupChat - Whether this is a group chat
+ */
+function applyReactionsToThread(threadNode, percentage, isGroupChat) {
+  // Find ALL reactable chat components (Text chat, Media chat, External link)
+  const allChatComponents = findAllReactableChatComponents(threadNode);
+
+  if (allChatComponents.length === 0) {
+    console.log('[REACTION] No reactable chat components found');
+    return { applied: 0, total: 0 };
+  }
+
+  console.log(`[REACTION] Found ${allChatComponents.length} reactable chat components (Text chat, Media chat, External link)`);
+
+  // Discover emoji component IDs from existing instances
+  console.log('[REACTION] Discovering emoji component IDs...');
+  const discoveredEmojiMap = discoverEmojiComponentIds(threadNode);
+
+  // Create combined emoji map with hard-coded keys + discovered keys
+  const emojiMap = new Map();
+
+  // Add hard-coded keys first (these are always available)
+  for (const [name, key] of Object.entries(EMOJI_COMPONENT_KEYS)) {
+    emojiMap.set(name, key);
+  }
+
+  // Merge in any discovered keys (these might override or add new ones)
+  for (const [name, key] of discoveredEmojiMap.entries()) {
+    if (!emojiMap.has(name)) {
+      emojiMap.set(name, key);
+    }
+  }
+
+  console.log(`[REACTION] Combined emoji map has ${emojiMap.size} emoji available`);
+
+  // Sort by vertical position to maintain message order
+  allChatComponents.sort((a, b) => {
+    const aY = a.absoluteTransform ? a.absoluteTransform[1][2] : 0;
+    const bY = b.absoluteTransform ? b.absoluteTransform[1][2] : 0;
+    return aY - bY;
+  });
+
+  // First, remove all existing reactions to start fresh
+  for (const chatComponent of allChatComponents) {
+    setReactionOnTextChat(chatComponent, false, isGroupChat, []);
+  }
+
+  // Determine spacing based on percentage
+  let baseInterval, variation;
+  if (percentage === 25) {
+    // "Some" - every 4-5 messages (base 4, variation 0-1)
+    baseInterval = 4;
+    variation = 2; // Math.random() * 2 gives 0-1.99, floor gives 0 or 1
+  } else if (percentage === 50) {
+    // "Lots" - every 2-3 messages (base 2, variation 0-1)
+    baseInterval = 2;
+    variation = 2; // Math.random() * 2 gives 0-1.99, floor gives 0 or 1
+  } else {
+    baseInterval = 3;
+    variation = 2;
+  }
+
+  // Apply reactions with randomized spacing
+  const selectedIndices = [];
+  let nextReactionIndex = Math.floor(Math.random() * 2);
+
+  while (nextReactionIndex < allChatComponents.length) {
+    selectedIndices.push(nextReactionIndex);
+    const interval = baseInterval + Math.floor(Math.random() * variation);
+    nextReactionIndex += interval;
+  }
+
+  console.log(`[REACTION] Selected ${selectedIndices.length} messages at indices: ${selectedIndices.join(', ')}`);
+
+  let appliedCount = 0;
+  for (const index of selectedIndices) {
+    const chatComponent = allChatComponents[index];
+    const componentName = chatComponent.name.toLowerCase();
+
+    // Get the message text from this chat component (works for all types)
+    const messageText = getChatComponentTextContent(chatComponent);
+
+    // Log what type of component we're processing
+    let componentType = 'unknown';
+    if (componentName.includes('text chat')) componentType = 'Text chat';
+    else if (componentName.includes('media chat')) componentType = 'Media chat';
+    else if (componentName.includes('external link')) componentType = 'External link';
+
+    console.log(`[REACTION] Processing ${componentType}: "${messageText ? messageText.substring(0, 30) + '...' : '(no text)'}"`);
+
+    // Pick a contextual emoji based on the message content
+    const selectedEmoji = pickContextualEmojiFromAvailable(messageText, emojiMap);
+
+    if (setReactionOnTextChat(chatComponent, true, isGroupChat, [selectedEmoji], emojiMap)) {
+      appliedCount++;
+    }
+  }
+
+  return { applied: appliedCount, total: allChatComponents.length };
+}
+
+/**
+ * Get the text content from any chat component (Text chat, Media chat, or External link)
+ * Searches for the main message text node
+ * @param {SceneNode} chatNode - The chat component
+ * @returns {string|null} - The message text or null if not found
+ */
+function getChatComponentTextContent(chatNode) {
+  let messageText = null;
+  let allTexts = []; // Collect all text for fallback
+
+  function search(node, depth = 0) {
+    if (depth > 15) return;
+
+    if (node.type === 'TEXT') {
+      const name = node.name.toLowerCase();
+      const text = node.characters;
+
+      // Skip empty text
+      if (!text || text.length < 2) return;
+
+      // Skip nodes that are clearly not message content
+      const skipPatterns = ['time', 'date', 'read', 'delivered', 'typing', 'count', 'admin', 'eyebrow', 'timestamp', 'ago'];
+      if (skipPatterns.some(p => name.includes(p))) return;
+
+      // Collect all text for potential concatenation
+      allTexts.push(text);
+
+      // Prefer nodes that look like message content
+      const preferPatterns = ['message', 'text', 'content', 'body', 'label', 'title', 'caption', 'link'];
+      if (preferPatterns.some(p => name.includes(p)) && !messageText) {
+        messageText = text;
+        return;
+      }
+
+      // If no preferred node found yet, use this one if it has substantial content
+      if (!messageText && text.length > 10) {
+        messageText = text;
+      }
+    }
+
+    if ('children' in node) {
+      for (const child of node.children) {
+        search(child, depth + 1);
+      }
+    }
+  }
+
+  search(chatNode);
+
+  // If we found a main text, return it
+  if (messageText) {
+    return messageText;
+  }
+
+  // Otherwise, concatenate all texts found (useful for External link with multiple text elements)
+  if (allTexts.length > 0) {
+    return allTexts.join(' ');
+  }
+
+  return null;
+}
+
+/**
+ * Get the text content from a Text chat component
+ * Searches for the main message text node
+ * @param {SceneNode} textChatNode - The Text chat component
+ * @returns {string|null} - The message text or null if not found
+ */
+function getTextChatMessageContent(textChatNode) {
+  return getChatComponentTextContent(textChatNode);
+}
+
+/**
+ * Remove all reactions from ALL chat components that can have reactions
+ * This includes: Text chat, Media chat, and External link components
+ */
+function removeReactionsFromThread(threadNode) {
+  const allChatComponents = findAllReactableChatComponents(threadNode);
+
+  if (allChatComponents.length === 0) {
+    console.log('[REACTION] No reactable chat components found');
+    return { removed: 0, total: 0 };
+  }
+
+  console.log(`[REACTION] Removing reactions from ${allChatComponents.length} chat components (Text chat, Media chat, External link)`);
+
+  let removedCount = 0;
+  for (const chatComponent of allChatComponents) {
+    if (setReactionOnTextChat(chatComponent, false, false)) {
+      removedCount++;
+    }
+  }
+
+  return { removed: removedCount, total: allChatComponents.length };
+}
+
+// ============================================================================
 // MESSAGE HANDLING
 // ============================================================================
 
 figma.ui.onmessage = async (msg) => {
+  if (msg.type === 'apply-reactions') {
+    const selection = figma.currentPage.selection;
+
+    if (selection.length === 0) {
+      figma.ui.postMessage({
+        type: 'error',
+        message: 'Please select a Chat Thread component first'
+      });
+      return;
+    }
+
+    const threadNode = selection[0];
+    const percentage = msg.percentage;
+
+    // Determine if this is a group chat
+    let isGroupChat = false;
+    if (threadNode.type === 'INSTANCE') {
+      try {
+        const props = threadNode.componentProperties;
+        for (const key of Object.keys(props)) {
+          if (key.toLowerCase().includes('group')) {
+            const value = props[key].value;
+            isGroupChat = typeof value === 'boolean' ? value : value === 'True';
+            break;
+          }
+        }
+      } catch (e) {
+        console.log('[REACTION] Could not read group chat property:', e.message);
+      }
+    }
+
+    console.log(`[REACTION] Applying reactions at ${percentage}% (isGroupChat: ${isGroupChat})`);
+    const result = applyReactionsToThread(threadNode, percentage, isGroupChat);
+
+    if (result.total === 0) {
+      figma.ui.postMessage({
+        type: 'error',
+        message: 'No Text chat components found in selection'
+      });
+    } else {
+      figma.ui.postMessage({
+        type: 'success',
+        message: `Applied reactions to ${result.applied} of ${result.total} messages`
+      });
+    }
+    return;
+  }
+
+  if (msg.type === 'remove-reactions') {
+    const selection = figma.currentPage.selection;
+
+    if (selection.length === 0) {
+      figma.ui.postMessage({
+        type: 'error',
+        message: 'Please select a Chat Thread component first'
+      });
+      return;
+    }
+
+    const threadNode = selection[0];
+    console.log('[REACTION] Removing all reactions');
+    const result = removeReactionsFromThread(threadNode);
+
+    if (result.total === 0) {
+      figma.ui.postMessage({
+        type: 'error',
+        message: 'No Text chat components found in selection'
+      });
+    } else {
+      figma.ui.postMessage({
+        type: 'success',
+        message: `Removed reactions from ${result.removed} messages`
+      });
+    }
+    return;
+  }
+
+  if (msg.type === 'run-diagnostics') {
+    const selection = figma.currentPage.selection;
+
+    if (selection.length === 0) {
+      figma.ui.postMessage({
+        type: 'error',
+        message: 'Please select a Chat Thread component first to run diagnostics'
+      });
+      return;
+    }
+
+    console.log('[DIAGNOSTICS] Running property analysis on selected node...');
+    const results = diagnosticLogAllProperties(selection[0]);
+
+    // Send results back to UI
+    figma.ui.postMessage({
+      type: 'diagnostics-complete',
+      message: `Found ${results.instances.length} component instances. Check Figma developer console for details.`,
+      reactionRelated: results.instances.filter(i => i.isReactionRelated).map(i => ({
+        name: i.name,
+        path: i.path,
+        properties: i.properties
+      }))
+    });
+    return;
+  }
+
   if (msg.type === 'close') {
     figma.closePlugin();
     return;

@@ -395,6 +395,96 @@
       border-color: #4A5DF9;
       background-color: rgba(74, 93, 249, 0.05);
     }
+
+    /* Chat Flair Slider Styles */
+    .slider-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .slider-track-wrapper {
+      flex: 1;
+      position: relative;
+    }
+
+    .slider-input {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      background: linear-gradient(to right, #4A5DF9 0%, #4A5DF9 var(--slider-progress, 0%), #e0e0e0 var(--slider-progress, 0%), #e0e0e0 100%);
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .slider-input::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      background: #4A5DF9;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      transition: transform 0.15s ease;
+    }
+
+    .slider-input::-webkit-slider-thumb:hover {
+      transform: scale(1.1);
+    }
+
+    .slider-input::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      background: #4A5DF9;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .slider-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+    }
+
+    .slider-label {
+      font-size: 10px;
+      color: #888;
+      text-align: center;
+      width: 40px;
+    }
+
+    .slider-label:first-child {
+      text-align: left;
+    }
+
+    .slider-label:last-child {
+      text-align: right;
+    }
+
+    .slider-value {
+      min-width: 36px;
+      text-align: right;
+      font-size: 12px;
+      font-weight: 600;
+      color: #4A5DF9;
+    }
+
+    .subsection-label {
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 4px;
+    }
   </style>
 </head>
 <body>
@@ -425,6 +515,27 @@
         <select id="group-size-select" class="group-size-select">
           <option value="3" selected>3 people</option>
         </select>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Chat Flair Section -->
+    <div class="section">
+      <span class="section-label">Chat flair</span>
+      <div class="slider-container">
+        <span class="subsection-label">Chat reactions</span>
+        <div class="slider-row">
+          <div class="slider-track-wrapper">
+            <input type="range" id="reactions-slider" class="slider-input" min="0" max="50" step="25" value="0">
+            <div class="slider-labels">
+              <span class="slider-label">None</span>
+              <span class="slider-label">Some</span>
+              <span class="slider-label">Lots</span>
+            </div>
+          </div>
+          <span id="reactions-value" class="slider-value">0%</span>
+        </div>
       </div>
     </div>
 
@@ -461,6 +572,10 @@
 
     <div class="button-row">
       <button id="generate-btn" disabled>Generate conversation</button>
+    </div>
+
+    <div class="button-row">
+      <button id="diagnostics-btn" class="secondary">🔍 Run Diagnostics</button>
     </div>
 
     <div class="footer">
@@ -912,6 +1027,11 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
 
         const chatType = isGroupChat ? '👥 Group Chat (3 people)' : '💬 1:1 Chat';
         showStatus(`Found ${msg.totalBubbles} bubbles — ${chatType}`, 'info');
+      } else if (msg.type === 'diagnostics-complete') {
+        showStatus(msg.message, 'success');
+        if (msg.reactionRelated && msg.reactionRelated.length > 0) {
+          console.log('[UI] Reaction-related components found:', msg.reactionRelated);
+        }
       } else if (msg.type === 'success') {
         showStatus(msg.message || 'Conversation generated successfully!', 'success');
         generateBtn.disabled = false;
@@ -934,6 +1054,59 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
     }
 
     requestStructureAnalysis();
+
+    // Reactions slider handler
+    const reactionsSlider = document.getElementById('reactions-slider');
+    const reactionsValue = document.getElementById('reactions-value');
+
+    function updateSliderVisual() {
+      const value = parseInt(reactionsSlider.value);
+      const progress = (value / 50) * 100;
+      reactionsSlider.style.setProperty('--slider-progress', `${progress}%`);
+      // Display label instead of percentage
+      if (value === 0) {
+        reactionsValue.textContent = 'None';
+      } else if (value === 25) {
+        reactionsValue.textContent = 'Some';
+      } else if (value === 50) {
+        reactionsValue.textContent = 'Lots';
+      } else {
+        reactionsValue.textContent = `${value}%`;
+      }
+    }
+
+    reactionsSlider.addEventListener('input', updateSliderVisual);
+
+    reactionsSlider.addEventListener('change', () => {
+      const value = parseInt(reactionsSlider.value);
+      if (value > 0) {
+        parent.postMessage({
+          pluginMessage: {
+            type: 'apply-reactions',
+            percentage: value
+          }
+        }, '*');
+        showStatus(`Applying reactions to ${value}% of messages...`, 'info');
+      } else {
+        parent.postMessage({
+          pluginMessage: {
+            type: 'remove-reactions'
+          }
+        }, '*');
+        showStatus('Removing reactions...', 'info');
+      }
+    });
+
+    // Initialize slider visual
+    updateSliderVisual();
+
+    // Diagnostics button handler
+    document.getElementById('diagnostics-btn').addEventListener('click', () => {
+      showStatus('Running diagnostics... Check Figma console for details', 'info');
+      parent.postMessage({
+        pluginMessage: { type: 'run-diagnostics' }
+      }, '*');
+    });
 
     window.addEventListener('focus', () => {
       requestStructureAnalysis();

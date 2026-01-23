@@ -80,6 +80,17 @@ const STICKER_COMPONENT_KEYS = {
   'pinkCry': '11a649498d6ac0bf2622defc359a912b68f40345'
 };
 
+// ============================================================================
+// MEDIA CHAT COMPONENT SET NAMES
+// These are the names of component sets that can replace Text chat
+// The variant is selected based on matching To - From and Chat bubble properties
+// ============================================================================
+const MEDIA_CHAT_COMPONENT_SET_NAMES = {
+  'media-chat': 'Media chat',
+  'reels': 'Reels',
+  'ig-content-share': 'IG content share'
+};
+
 // Sticker rotation options (in degrees)
 const STICKER_ROTATIONS = [4, 8, 16, -4, -8, -16];
 
@@ -1670,8 +1681,14 @@ function findTextChatComponents(node) {
 
     const name = n.name.toLowerCase();
 
+    // Debug: Log instance names at top levels
+    if (depth <= 3 && n.type === 'INSTANCE') {
+      console.log(`[FIND TEXT CHAT] Depth ${depth}: Found INSTANCE "${n.name}"`);
+    }
+
     // Look for "Text chat" components
     if (name.includes('text chat') && n.type === 'INSTANCE') {
+      console.log(`[FIND TEXT CHAT] ✓ Matched Text chat: "${n.name}"`);
       textChats.push(n);
       return; // Don't recurse into Text chat components
     }
@@ -1683,7 +1700,9 @@ function findTextChatComponents(node) {
     }
   }
 
+  console.log(`[FIND TEXT CHAT] Starting search from node: "${node.name}" (type: ${node.type})`);
   search(node);
+  console.log(`[FIND TEXT CHAT] Found ${textChats.length} Text chat components`);
   return textChats;
 }
 
@@ -2719,6 +2738,541 @@ function removeStickersFromThread(threadNode) {
 }
 
 // ============================================================================
+// MEDIA CHAT: Replace Text chat with Media chat or IG content share
+// ============================================================================
+
+/**
+ * Track original Text chat nodes for restoration
+ */
+let originalTextChatNodes = new Map(); // Map of node ID → original node info
+
+/**
+ * Find the parent that can swap child instances (Chat block, Content, etc.)
+ * @param {SceneNode} textChatNode - The Text chat instance to find parent for
+ * @returns {SceneNode|null} - The parent node that can accept instance swaps
+ */
+function findSwappableParent(textChatNode) {
+  let parent = textChatNode.parent;
+  let depth = 0;
+
+  while (parent && depth < 5) {
+    // Look for common container names that can have children swapped
+    const name = parent.name.toLowerCase();
+    if (name.includes('content') || name.includes('chat block') || name.includes('block')) {
+      return parent;
+    }
+    parent = parent.parent;
+    depth++;
+  }
+
+  return textChatNode.parent;
+}
+
+/**
+ * Apply media chat components to the thread
+ * Uses instance swapping on Chat block's Sender/Recipient properties to replace Text chat with Media chat/IG content share
+ * @param {SceneNode} threadNode - The chat thread node
+ * @param {number} percentage - Percentage level (25 = Some, 50 = Lots)
+ * @param {string[]} mediaTypes - Array of media types to use ['media-chat', 'ig-content-share']
+ * @returns {Object} - { applied: number, total: number }
+ */
+async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
+  console.log(`[MEDIA CHAT] Applying media at ${percentage}% with types:`, mediaTypes);
+
+  // Find all Chat block components
+  const chatBlocks = findChatBlockComponents(threadNode);
+
+  if (chatBlocks.length === 0) {
+    console.log('[MEDIA CHAT] No Chat block components found');
+    return { applied: 0, total: 0 };
+  }
+
+  console.log(`[MEDIA CHAT] Found ${chatBlocks.length} Chat block components`);
+
+  // Sort by vertical position
+  chatBlocks.sort((a, b) => {
+    const aY = a.absoluteTransform ? a.absoluteTransform[1][2] : 0;
+    const bY = b.absoluteTransform ? b.absoluteTransform[1][2] : 0;
+    return aY - bY;
+  });
+
+  // Determine spacing based on percentage
+  let baseInterval, variation;
+  if (percentage === 25) {
+    baseInterval = 4;
+    variation = 2;
+  } else if (percentage === 50) {
+    baseInterval = 2;
+    variation = 2;
+  } else {
+    baseInterval = 3;
+    variation = 2;
+  }
+
+  // Select which Chat blocks get modified
+  const selectedIndices = [];
+  let nextIndex = Math.floor(Math.random() * 2);
+
+  while (nextIndex < chatBlocks.length) {
+    selectedIndices.push(nextIndex);
+    const interval = baseInterval + Math.floor(Math.random() * variation);
+    nextIndex += interval;
+  }
+
+  console.log(`[MEDIA CHAT] Selected ${selectedIndices.length} Chat blocks at indices: ${selectedIndices.join(', ')}`);
+
+  // Clear any previous tracking
+  originalTextChatNodes.clear();
+
+  let appliedCount = 0;
+
+  for (const index of selectedIndices) {
+    const chatBlock = chatBlocks[index];
+
+    // Pick a random media type from the selected ones
+    const mediaType = mediaTypes[Math.floor(Math.random() * mediaTypes.length)];
+
+    console.log(`[MEDIA CHAT] Swapping Chat block ${index} to ${mediaType}`);
+
+    try {
+      // Get component properties
+      const props = chatBlock.componentProperties;
+      const propKeys = Object.keys(props);
+
+      // Determine if this is Sender or Recipient based on To-From variant
+      let sideType = 'sender';
+      for (const key of propKeys) {
+        if (key === 'To - From' && props[key].type === 'VARIANT') {
+          sideType = props[key].value.toLowerCase() === 'recipient' ? 'recipient' : 'sender';
+          break;
+        }
+      }
+
+      // Determine position type based on Chat bubbles variant
+      let chatBubbles = '1';
+      for (const key of propKeys) {
+        if (key === 'Chat bubbles' && props[key].type === 'VARIANT') {
+          chatBubbles = props[key].value;
+          break;
+        }
+      }
+
+      console.log(`[MEDIA CHAT] Chat block is ${sideType} with ${chatBubbles} bubble(s)`);
+
+      // Find the appropriate property key and determine position
+      let propKeyToSwap = null;
+      let position = 'single';
+
+      if (chatBubbles === '1') {
+        // Single bubble - use single position
+        position = 'single';
+        for (const key of propKeys) {
+          const keyLower = key.toLowerCase();
+          if (keyLower.includes(sideType) && keyLower.includes('single') && props[key].type === 'INSTANCE_SWAP') {
+            propKeyToSwap = key;
+            break;
+          }
+        }
+      } else {
+        // Multiple bubbles - pick a random position (top, mid, or bottom)
+        const positions = ['top', 'mid', 'bottom'];
+        position = positions[Math.floor(Math.random() * positions.length)];
+
+        for (const key of propKeys) {
+          const keyLower = key.toLowerCase();
+          if (keyLower.includes(sideType) && props[key].type === 'INSTANCE_SWAP') {
+            if (position === 'mid' && keyLower.includes('mid')) {
+              propKeyToSwap = key;
+              break;
+            } else if (position === 'top' && keyLower.includes('top')) {
+              propKeyToSwap = key;
+              break;
+            } else if (position === 'bottom' && keyLower.includes('bottom')) {
+              propKeyToSwap = key;
+              break;
+            }
+          }
+        }
+      }
+
+      if (!propKeyToSwap) {
+        console.log(`[MEDIA CHAT] Could not find ${sideType} (${position}) property to swap`);
+        continue;
+      }
+
+      // Store original value for restoration
+      originalTextChatNodes.set(chatBlock.id, {
+        index: index,
+        propKey: propKeyToSwap,
+        originalValue: props[propKeyToSwap].value
+      });
+
+      // Get the target component SET name for the media type
+      const targetComponentSetName = MEDIA_CHAT_COMPONENT_SET_NAMES[mediaType];
+      if (!targetComponentSetName) {
+        console.log(`[MEDIA CHAT] Unknown media type: ${mediaType}`);
+        continue;
+      }
+
+      // Determine the variant we need based on sideType and position
+      // Media chat variants are named like: "To - From=Sender, Chat bubble=Single"
+      const targetSide = sideType === 'sender' ? 'Sender' : 'Recipient';
+      const targetBubble = position === 'single' ? 'Single' :
+                          position === 'top' ? 'Top' :
+                          position === 'mid' ? 'Middle' : 'Bottom';
+
+      console.log(`[MEDIA CHAT] Looking for "${targetComponentSetName}" with To - From=${targetSide}, Chat bubble=${targetBubble}`);
+
+      const propDef = props[propKeyToSwap];
+      let nodeId = null;
+
+      // Helper function to find the matching variant in a component set
+      function findMatchingVariant(componentSet) {
+        if (!componentSet || componentSet.type !== 'COMPONENT_SET') {
+          console.log('[MEDIA CHAT] Not a component set: ' + (componentSet ? componentSet.name : 'null'));
+          return null;
+        }
+
+        console.log(`[MEDIA CHAT] Searching component set "${componentSet.name}" with ${componentSet.children.length} variants...`);
+
+        for (const child of componentSet.children) {
+          if (child.type !== 'COMPONENT') continue;
+
+          const childName = child.name;
+          const childNameLower = childName.toLowerCase();
+
+          // Skip ephemeral variants
+          if (childNameLower.includes('ephemeral')) {
+            console.log(`[MEDIA CHAT]   - Skipping ephemeral: "${childName}"`);
+            continue;
+          }
+
+          // Parse the variant name to extract To - From and Chat bubble values
+          // Format: "To - From=Sender, Chat bubble=Single"
+          const nameParts = childName.split(',').map(p => p.trim());
+          let variantSide = null;
+          let variantBubble = null;
+
+          for (const part of nameParts) {
+            if (part.startsWith('To - From=')) {
+              variantSide = part.split('=')[1].trim();
+            } else if (part.startsWith('Chat bubble=')) {
+              variantBubble = part.split('=')[1].trim();
+            }
+          }
+
+          console.log(`[MEDIA CHAT]   - Variant: "${childName}" → Side=${variantSide}, Bubble=${variantBubble}`);
+
+          // Check if this variant matches what we need
+          if (variantSide === targetSide && variantBubble === targetBubble) {
+            console.log(`[MEDIA CHAT]     ✓ MATCH! Using this variant`);
+            return child;
+          }
+        }
+
+        console.log(`[MEDIA CHAT] No matching variant found in "${componentSet.name}"`);
+        return null;
+      }
+
+      // Strategy 1: Search preferredValues for the target component set
+      if (propDef.preferredValues && Array.isArray(propDef.preferredValues)) {
+        console.log(`[MEDIA CHAT] Checking ${propDef.preferredValues.length} preferredValues...`);
+
+        for (const preferred of propDef.preferredValues) {
+          if (preferred.type === 'COMPONENT_SET' && preferred.key) {
+            try {
+              const importedComponentSet = await figma.importComponentSetByKeyAsync(preferred.key);
+              if (importedComponentSet) {
+                console.log(`[MEDIA CHAT] Imported component set: "${importedComponentSet.name}"`);
+
+                // Check if this is the component set we're looking for
+                if (importedComponentSet.name === targetComponentSetName) {
+                  const matchingVariant = findMatchingVariant(importedComponentSet);
+                  if (matchingVariant) {
+                    nodeId = matchingVariant.id;
+                    console.log(`[MEDIA CHAT] Found matching variant "${matchingVariant.name}" with ID: ${nodeId}`);
+                    break;
+                  }
+                }
+              }
+            } catch (importError) {
+              console.log(`[MEDIA CHAT] Could not import component set:`, importError.message);
+            }
+          }
+        }
+      }
+
+      // Strategy 2: Search the document for the component set by name
+      if (!nodeId) {
+        console.log(`[MEDIA CHAT] Searching document for component set "${targetComponentSetName}"...`);
+
+        const componentSets = figma.root.findAll(n =>
+          n.type === 'COMPONENT_SET' &&
+          n.name === targetComponentSetName
+        );
+
+        console.log(`[MEDIA CHAT] Found ${componentSets.length} component sets named "${targetComponentSetName}"`);
+
+        for (const componentSet of componentSets) {
+          const matchingVariant = findMatchingVariant(componentSet);
+          if (matchingVariant) {
+            nodeId = matchingVariant.id;
+            console.log(`[MEDIA CHAT] Found matching variant "${matchingVariant.name}" with ID: ${nodeId}`);
+            break;
+          }
+        }
+      }
+
+      // Strategy 3: Search for individual components matching the pattern
+      if (!nodeId) {
+        console.log(`[MEDIA CHAT] Searching document for individual components...`);
+
+        // Look for components that match our criteria
+        const searchPattern = `To - From=${targetSide}, Chat bubble=${targetBubble}`;
+        const allComponents = figma.root.findAll(n => {
+          if (n.type !== 'COMPONENT') return false;
+          if (n.name.toLowerCase().includes('ephemeral')) return false;
+
+          // Check if parent is the component set we want
+          const parent = n.parent;
+          if (parent && parent.type === 'COMPONENT_SET' && parent.name === targetComponentSetName) {
+            return n.name.includes(searchPattern);
+          }
+          return false;
+        });
+
+        if (allComponents.length > 0) {
+          nodeId = allComponents[0].id;
+          console.log(`[MEDIA CHAT] Found component "${allComponents[0].name}" with ID: ${nodeId}`);
+        }
+      }
+
+      if (!nodeId) {
+        console.log(`[MEDIA CHAT] Could not find node ID for ${mediaType} (${position})`);
+        continue;
+      }
+
+      console.log(`[MEDIA CHAT] Swapping "${propKeyToSwap}" to node ID: ${nodeId}`);
+
+      // Set the instance swap property
+      chatBlock.setProperties({ [propKeyToSwap]: nodeId });
+
+      console.log(`[MEDIA CHAT] ✓ Swapped Chat block ${index} to ${mediaType}`);
+      appliedCount++;
+
+    } catch (error) {
+      console.log(`[MEDIA CHAT] Error swapping Chat block:`, error.message);
+    }
+  }
+
+  return { applied: appliedCount, total: chatBlocks.length };
+}
+
+/**
+ * Find Chat block components within the thread
+ * @param {SceneNode} node - The node to search within
+ * @returns {SceneNode[]} - Array of Chat block components
+ */
+function findChatBlockComponents(node) {
+  const chatBlocks = [];
+
+  function search(n, depth = 0) {
+    if (depth > 10) return;
+
+    const name = n.name.toLowerCase();
+
+    // Look for "Chat block" components
+    if (name === 'chat block' && n.type === 'INSTANCE') {
+      chatBlocks.push(n);
+      return; // Don't recurse into Chat block components
+    }
+
+    if ('children' in n) {
+      for (const child of n.children) {
+        search(child, depth + 1);
+      }
+    }
+  }
+
+  search(node);
+  return chatBlocks;
+}
+
+/**
+ * Remove all media chat replacements and restore original Text chats
+ * Scans Chat blocks for Media chat instances and swaps them back to Text chat
+ * @param {SceneNode} threadNode - The chat thread node
+ * @returns {Object} - { removed: number }
+ */
+async function removeMediaChatFromThread(threadNode) {
+  console.log('[MEDIA CHAT] Removing media chat replacements...');
+
+  let restoredCount = 0;
+
+  // First, restore from tracked original values (for current session changes)
+  for (const [chatBlockId, data] of originalTextChatNodes) {
+    try {
+      const chatBlock = figma.getNodeById(chatBlockId);
+      if (!chatBlock) {
+        console.log('[MEDIA CHAT] Could not find Chat block with ID: ' + chatBlockId);
+        continue;
+      }
+
+      if (data.propKey && data.originalValue) {
+        console.log('[MEDIA CHAT] Restoring "' + data.propKey + '" to original value: ' + data.originalValue);
+        chatBlock.setProperties({ [data.propKey]: data.originalValue });
+        restoredCount++;
+      }
+    } catch (e) {
+      console.log('[MEDIA CHAT] Error restoring Chat block:', e.message);
+    }
+  }
+
+  // Clear the tracking map
+  originalTextChatNodes.clear();
+
+  // Now scan for any remaining Media chat instances in the thread
+  // This handles cases where the plugin was reloaded or Media chat was applied in a previous session
+  const chatBlocks = findChatBlockComponents(threadNode);
+  console.log('[MEDIA CHAT] Scanning ' + chatBlocks.length + ' Chat blocks for Media chat instances...');
+
+  for (const chatBlock of chatBlocks) {
+    try {
+      const props = chatBlock.componentProperties;
+      const propKeys = Object.keys(props);
+
+      // Check each INSTANCE_SWAP property to see if it's currently a Media chat
+      for (const key of propKeys) {
+        if (props[key].type !== 'INSTANCE_SWAP') continue;
+
+        const currentValue = props[key].value;
+        if (!currentValue) continue;
+
+        // Get the current component to check if it's Media chat or Reels
+        const currentComponent = figma.getNodeById(currentValue);
+        if (!currentComponent) continue;
+
+        // Check if the component or its parent is a media type we should remove
+        let isMediaComponent = false;
+        const compName = currentComponent.name || '';
+        const parentName = currentComponent.parent ? (currentComponent.parent.name || '') : '';
+
+        // Check for Media chat or Reels
+        if (parentName === 'Media chat' || parentName === 'Reels' ||
+            compName.toLowerCase().includes('media chat') || compName.toLowerCase().includes('reels')) {
+          isMediaComponent = true;
+        }
+
+        if (!isMediaComponent) continue;
+
+        console.log('[MEDIA CHAT] Found Media chat in "' + key + '" - looking for Text chat replacement...');
+
+        // Determine what Text chat variant we need
+        // Parse the key to get position info (e.g., "Sender (top)" -> sender, top)
+        const keyLower = key.toLowerCase();
+        let sideType = keyLower.includes('sender') ? 'Sender' : 'Recipient';
+        let bubbleType = 'Single';
+        if (keyLower.includes('top')) bubbleType = 'Top';
+        else if (keyLower.includes('mid')) bubbleType = 'Middle';
+        else if (keyLower.includes('bottom')) bubbleType = 'Bottom';
+        else if (keyLower.includes('single')) bubbleType = 'Single';
+
+        console.log('[MEDIA CHAT] Need Text chat with To - From=' + sideType + ', Chat bubble=' + bubbleType);
+
+        // Find the Text chat component set and get the matching variant
+        let textChatNodeId = null;
+
+        // Strategy 1: Look in preferredValues for Text chat component set
+        if (props[key].preferredValues && Array.isArray(props[key].preferredValues)) {
+          for (const preferred of props[key].preferredValues) {
+            if (preferred.type === 'COMPONENT_SET' && preferred.key) {
+              try {
+                const importedComponentSet = await figma.importComponentSetByKeyAsync(preferred.key);
+                if (importedComponentSet && importedComponentSet.name === 'Text chat') {
+                  console.log('[MEDIA CHAT] Found Text chat component set');
+
+                  // Find the matching variant
+                  for (const child of importedComponentSet.children) {
+                    if (child.type !== 'COMPONENT') continue;
+
+                    const nameParts = child.name.split(',').map(function(p) { return p.trim(); });
+                    let variantSide = null;
+                    let variantBubble = null;
+
+                    for (const part of nameParts) {
+                      if (part.startsWith('To - From=')) {
+                        variantSide = part.split('=')[1].trim();
+                      } else if (part.startsWith('Chat bubble=')) {
+                        variantBubble = part.split('=')[1].trim();
+                      }
+                    }
+
+                    if (variantSide === sideType && variantBubble === bubbleType) {
+                      textChatNodeId = child.id;
+                      console.log('[MEDIA CHAT] Found matching Text chat variant: "' + child.name + '"');
+                      break;
+                    }
+                  }
+                  if (textChatNodeId) break;
+                }
+              } catch (importError) {
+                console.log('[MEDIA CHAT] Could not import component set:', importError.message);
+              }
+            }
+          }
+        }
+
+        // Strategy 2: Search document for Text chat component set
+        if (!textChatNodeId) {
+          const textChatSets = figma.root.findAll(function(n) {
+            return n.type === 'COMPONENT_SET' && n.name === 'Text chat';
+          });
+
+          for (const componentSet of textChatSets) {
+            for (const child of componentSet.children) {
+              if (child.type !== 'COMPONENT') continue;
+
+              const nameParts = child.name.split(',').map(function(p) { return p.trim(); });
+              let variantSide = null;
+              let variantBubble = null;
+
+              for (const part of nameParts) {
+                if (part.startsWith('To - From=')) {
+                  variantSide = part.split('=')[1].trim();
+                } else if (part.startsWith('Chat bubble=')) {
+                  variantBubble = part.split('=')[1].trim();
+                }
+              }
+
+              if (variantSide === sideType && variantBubble === bubbleType) {
+                textChatNodeId = child.id;
+                console.log('[MEDIA CHAT] Found matching Text chat variant in document: "' + child.name + '"');
+                break;
+              }
+            }
+            if (textChatNodeId) break;
+          }
+        }
+
+        if (textChatNodeId) {
+          console.log('[MEDIA CHAT] Restoring "' + key + '" to Text chat (ID: ' + textChatNodeId + ')');
+          chatBlock.setProperties({ [key]: textChatNodeId });
+          restoredCount++;
+        } else {
+          console.log('[MEDIA CHAT] Could not find Text chat variant for ' + sideType + '/' + bubbleType);
+        }
+      }
+    } catch (e) {
+      console.log('[MEDIA CHAT] Error scanning Chat block:', e.message);
+    }
+  }
+
+  console.log('[MEDIA CHAT] Restored ' + restoredCount + ' properties to Text chat');
+
+  return { removed: restoredCount };
+}
+
+// ============================================================================
 // GRADIENT: Apply gradient strength to .Gradient step instances
 // ============================================================================
 
@@ -3200,6 +3754,81 @@ figma.ui.onmessage = async (msg) => {
         message: `Removed gradient from ${result.removed} gradient steps`
       });
     }
+    return;
+  }
+
+  if (msg.type === 'apply-media-chat') {
+    const selection = figma.currentPage.selection;
+
+    if (selection.length === 0) {
+      figma.ui.postMessage({
+        type: 'error',
+        message: 'Please select a Chat Thread component first'
+      });
+      return;
+    }
+
+    const threadNode = selection[0];
+    const percentage = msg.percentage;
+    const mediaTypes = msg.mediaTypes;
+
+    console.log(`[MEDIA CHAT] Applying media chat at ${percentage}% with types:`, mediaTypes);
+
+    try {
+      // First remove any existing media replacements
+      removeMediaChatFromThread(threadNode);
+
+      // Then apply new media chat
+      const result = await applyMediaChatToThread(threadNode, percentage, mediaTypes);
+
+      if (result.total === 0) {
+        figma.ui.postMessage({
+          type: 'error',
+          message: 'No Text chat components found in selection'
+        });
+      } else {
+        figma.ui.postMessage({
+          type: 'success',
+          message: `Replaced ${result.applied} messages with media content`
+        });
+      }
+    } catch (error) {
+      console.log(`[MEDIA CHAT] Error:`, error.message);
+      figma.ui.postMessage({
+        type: 'error',
+        message: `Error applying media chat: ${error.message}`
+      });
+    }
+    return;
+  }
+
+  if (msg.type === 'remove-media-chat') {
+    const selection = figma.currentPage.selection;
+
+    if (selection.length === 0) {
+      figma.ui.postMessage({
+        type: 'error',
+        message: 'Please select a Chat Thread component first'
+      });
+      return;
+    }
+
+    const threadNode = selection[0];
+    console.log('[MEDIA CHAT] Removing all media chat');
+
+    // removeMediaChatFromThread is now async
+    removeMediaChatFromThread(threadNode).then(function(result) {
+      figma.ui.postMessage({
+        type: 'success',
+        message: 'Removed ' + result.removed + ' media replacements and restored Text chats'
+      });
+    }).catch(function(error) {
+      console.log('[MEDIA CHAT] Error removing media chat:', error.message);
+      figma.ui.postMessage({
+        type: 'error',
+        message: 'Error removing media chat: ' + error.message
+      });
+    });
     return;
   }
 

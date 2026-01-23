@@ -483,6 +483,83 @@
       border-color: #4A5DF9;
       background-color: rgba(74, 93, 249, 0.05);
     }
+
+    /* Checkbox Dropdown Styles */
+    .checkbox-dropdown {
+      position: relative;
+    }
+
+    .checkbox-dropdown-toggle {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 12px;
+      font-family: 'SF Pro Text', sans-serif;
+      color: #333;
+      background: #f5f5f5;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .checkbox-dropdown-toggle:hover {
+      border-color: #ccc;
+    }
+
+    .dropdown-arrow {
+      font-size: 8px;
+      color: #666;
+      transition: transform 0.15s ease;
+    }
+
+    .checkbox-dropdown.open .dropdown-arrow {
+      transform: rotate(180deg);
+    }
+
+    .checkbox-dropdown-menu {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #ffffff;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      margin-top: 4px;
+      z-index: 10;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .checkbox-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      font-size: 12px;
+    }
+
+    .checkbox-option:hover {
+      background: rgba(74, 93, 249, 0.05);
+    }
+
+    .checkbox-option:first-child {
+      border-radius: 6px 6px 0 0;
+    }
+
+    .checkbox-option:last-child {
+      border-radius: 0 0 6px 6px;
+    }
+
+    .checkbox-option input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #4A5DF9;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -584,6 +661,15 @@
         <select id="gradient-select" class="gradient-select" style="margin-top: 4px;">
           <option value="none" selected>No gradient</option>
           <option value="gradient">Gradient</option>
+        </select>
+      </div>
+      <div class="slider-container" style="margin-top: 12px;">
+        <span class="subsection-label">Media</span>
+        <select id="media-select" class="gradient-select" style="margin-top: 4px;">
+          <option value="none" selected>None</option>
+          <option value="media-chat">Media chat</option>
+          <option value="reels">Reels</option>
+          <option value="both">Both</option>
         </select>
       </div>
     </div>
@@ -1171,6 +1257,53 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
           pluginMessage: { type: 'remove-gradient' }
         }, '*');
         showStatus('Removing gradient...', 'info');
+      }
+    });
+
+    // Media dropdown handler
+    const mediaSelect = document.getElementById('media-select');
+
+    mediaSelect.addEventListener('change', () => {
+      const value = mediaSelect.value;
+
+      if (value === 'none') {
+        // Remove all media content
+        parent.postMessage({
+          pluginMessage: {
+            type: 'remove-media-chat'
+          }
+        }, '*');
+        showStatus('Removing media content...', 'info');
+      } else if (value === 'media-chat') {
+        // Apply Media chat with "Some" behavior (25%)
+        parent.postMessage({
+          pluginMessage: {
+            type: 'apply-media-chat',
+            percentage: 25,
+            mediaTypes: ['media-chat']
+          }
+        }, '*');
+        showStatus('Applying Media chat...', 'info');
+      } else if (value === 'reels') {
+        // Apply Reels with "Some" behavior (25%)
+        parent.postMessage({
+          pluginMessage: {
+            type: 'apply-media-chat',
+            percentage: 25,
+            mediaTypes: ['reels']
+          }
+        }, '*');
+        showStatus('Applying Reels...', 'info');
+      } else if (value === 'both') {
+        // Apply both Media chat and Reels with "Some" behavior (25%)
+        parent.postMessage({
+          pluginMessage: {
+            type: 'apply-media-chat',
+            percentage: 25,
+            mediaTypes: ['media-chat', 'reels']
+          }
+        }, '*');
+        showStatus('Applying Media chat and Reels...', 'info');
       }
     });
 

@@ -87,8 +87,13 @@ const STICKER_COMPONENT_KEYS = {
 // ============================================================================
 const MEDIA_CHAT_COMPONENT_SET_NAMES = {
   'media-chat': 'Media chat',
-  'reels': 'Reels',
+  'reels': 'IG content share',  // Reels now uses IG content share with Share=Share reels variant
   'ig-content-share': 'IG content share'
+};
+
+// Variant property values for specific media types
+const MEDIA_TYPE_VARIANT_OVERRIDES = {
+  'reels': { 'State': 'Share reels' }  // When reels is selected, set State property to "Share reels"
 };
 
 // Sticker rotation options (in degrees)
@@ -3309,6 +3314,13 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
 
         console.log(`[MEDIA CHAT] Searching component set "${componentSet.name}" with ${componentSet.children.length} variants...`);
 
+        // Check if we have variant overrides for this media type (e.g., reels needs Share=Share reels)
+        const variantOverrides = MEDIA_TYPE_VARIANT_OVERRIDES[mediaType] || {};
+        const hasOverrides = Object.keys(variantOverrides).length > 0;
+        if (hasOverrides) {
+          console.log(`[MEDIA CHAT] Variant overrides for "${mediaType}": ${JSON.stringify(variantOverrides)}`);
+        }
+
         for (const child of componentSet.children) {
           if (child.type !== 'COMPONENT') continue;
 
@@ -3321,24 +3333,50 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
             continue;
           }
 
-          // Parse the variant name to extract To - From and Chat bubble values
-          // Format: "To - From=Sender, Chat bubble=Single"
+          // Parse the variant name to extract To - From, Chat bubble, and other values
+          // Format: "To - From=Sender, Chat bubble=Single, Share=Share reels"
           const nameParts = childName.split(',').map(p => p.trim());
           let variantSide = null;
           let variantBubble = null;
+          const variantProps = {};
 
           for (const part of nameParts) {
             if (part.startsWith('To - From=')) {
               variantSide = part.split('=')[1].trim();
             } else if (part.startsWith('Chat bubble=')) {
               variantBubble = part.split('=')[1].trim();
+            } else if (part.includes('=')) {
+              // Capture other variant properties like Share=Share reels
+              const [propName, propValue] = part.split('=').map(s => s.trim());
+              variantProps[propName] = propValue;
             }
           }
 
-          console.log(`[MEDIA CHAT]   - Variant: "${childName}" → Side=${variantSide}, Bubble=${variantBubble}`);
+          console.log(`[MEDIA CHAT]   - Variant: "${childName}" → Side=${variantSide}, Bubble=${variantBubble}, Props=${JSON.stringify(variantProps)}`);
 
           // Check if this variant matches what we need
-          if (variantSide === targetSide && variantBubble === targetBubble) {
+          // For components with variant overrides (like IG content share for reels),
+          // Chat bubble matching is not required - just match To - From and the override props
+          let sideMatches = variantSide === targetSide;
+          let bubbleMatches = variantBubble === targetBubble;
+
+          // If we have variant overrides, Chat bubble is optional (some components like IG content share don't have it)
+          if (hasOverrides && sideMatches) {
+            // Check if all override properties match
+            let overridesMatch = true;
+            for (const [propName, propValue] of Object.entries(variantOverrides)) {
+              if (variantProps[propName] !== propValue) {
+                overridesMatch = false;
+                break;
+              }
+            }
+
+            if (overridesMatch) {
+              console.log(`[MEDIA CHAT]     ✓ MATCH! Side=${variantSide}, overrides match`);
+              return child;
+            }
+          } else if (sideMatches && bubbleMatches) {
+            // Standard matching - both side and bubble must match
             console.log(`[MEDIA CHAT]     ✓ MATCH! Using this variant`);
             return child;
           }

@@ -1696,21 +1696,38 @@ function pickContextualEmojiFromAvailable(messageText, emojiMap) {
 /**
  * Pick a contextual image URL based on message text content
  * Matches keywords in the text to image categories
- * Falls back to random selection if no matches
+/**
+ * Pick a contextual image from MEDIA_IMAGES based on message text
+ * Uses keyword matching to find the best category, falls back to random
  * @param {string} messageText - The text content near the Media chat
+ * @param {Set} usedImages - Set of already-used image URLs to avoid duplicates
  * @returns {string} - A URL from MEDIA_IMAGES
  */
-function pickContextualMediaImage(messageText) {
+function pickContextualMediaImage(messageText, usedImages) {
   const allImages = Object.values(MEDIA_IMAGES).flat();
 
+  // Safety check - if no images configured
   if (allImages.length === 0) {
-    console.log('[MEDIA IMAGE] No images available');
+    console.log('[MEDIA IMAGE] No images configured in MEDIA_IMAGES');
     return null;
   }
 
-  if (!messageText || messageText.trim().length === 0) {
+  // Filter out already-used images
+  const usedSet = usedImages || new Set();
+  const availableImages = allImages.filter(url => !usedSet.has(url));
+
+  console.log('[MEDIA IMAGE] Total images: ' + allImages.length + ', Used: ' + usedSet.size + ', Available: ' + availableImages.length);
+
+  if (availableImages.length === 0) {
+    console.log('[MEDIA IMAGE] All images used, resetting to allow repeats');
+    // If all images are used, allow repeats by using all images
     const picked = allImages[Math.floor(Math.random() * allImages.length)];
-    console.log('[MEDIA IMAGE] No text, random pick');
+    return picked;
+  }
+
+  if (!messageText || messageText.trim().length === 0) {
+    const picked = availableImages[Math.floor(Math.random() * availableImages.length)];
+    console.log('[MEDIA IMAGE] No text, random pick from available');
     return picked;
   }
 
@@ -1738,14 +1755,18 @@ function pickContextualMediaImage(messageText) {
   }
 
   if (bestCategory && bestScore > 0 && MEDIA_IMAGES[bestCategory] && MEDIA_IMAGES[bestCategory].length > 0) {
-    const categoryImages = MEDIA_IMAGES[bestCategory];
-    const picked = categoryImages[Math.floor(Math.random() * categoryImages.length)];
-    console.log('[MEDIA IMAGE] Text matched category "' + bestCategory + '" (score: ' + bestScore + ')');
-    return picked;
+    // Filter category images by what's still available
+    const categoryImages = MEDIA_IMAGES[bestCategory].filter(url => !usedSet.has(url));
+    if (categoryImages.length > 0) {
+      const picked = categoryImages[Math.floor(Math.random() * categoryImages.length)];
+      console.log('[MEDIA IMAGE] Text matched category "' + bestCategory + '" (score: ' + bestScore + ')');
+      return picked;
+    }
+    // If all category images used, fall through to random from available
   }
 
-  const randomPick = allImages[Math.floor(Math.random() * allImages.length)];
-  console.log('[MEDIA IMAGE] No keyword match, random pick');
+  const randomPick = availableImages[Math.floor(Math.random() * availableImages.length)];
+  console.log('[MEDIA IMAGE] Random pick from available');
   return randomPick;
 }
 
@@ -1854,9 +1875,19 @@ async function applyImageToMediaChat(mediaChatNode, imageUrl) {
  * @returns {Promise<boolean>} - True if successful
  */
 async function randomizeAspectRatio(mediaChatNode) {
-  var aspectRatioOptions = ['4:3', '1:1', '9:16', '3:4'];
+  // Aspect ratio options - weighted towards 4:3 (most common)
+  // 4:3 appears 5 times, 1:1 appears 2 times, 16:9 appears 2 times
+  // This gives roughly: 4:3 = 55%, 1:1 = 22%, 16:9 = 22%
+  var aspectRatioOptions = ['4:3', '4:3', '4:3', '4:3', '4:3', '1:1', '1:1', '16:9', '16:9'];
   var randomRatio = aspectRatioOptions[Math.floor(Math.random() * aspectRatioOptions.length)];
-  console.log('[ASPECT RATIO] Randomizing to ' + randomRatio);
+
+  // For landscape, only enable for ratios that support it (not 1:1)
+  var randomLandscape = randomRatio !== '1:1' && Math.random() > 0.5;
+
+  // Video is less common
+  var randomVideo = Math.random() > 0.8; // 20% chance of video
+
+  console.log('[ASPECT RATIO] Randomizing: ratio=' + randomRatio + ', landscape=' + randomLandscape + ', video=' + randomVideo);
 
   try {
     let aspectRatioNode = null;
@@ -1889,26 +1920,62 @@ async function randomizeAspectRatio(mediaChatNode) {
 
     var props = aspectRatioNode.componentProperties;
     var propKeys = Object.keys(props);
+
+    // Find the property keys
     var aspectRatioKey = null;
+    var landscapeKey = null;
+    var videoKey = null;
 
     for (const key of propKeys) {
       var keyLower = key.toLowerCase();
-      if (keyLower === 'aspect ratio' || keyLower.startsWith('aspect ratio')) {
+      if (keyLower === 'aspect ratio' || keyLower.startsWith('aspect ratio#')) {
         aspectRatioKey = key;
-        break;
+      }
+      if (keyLower === 'landscape?' || keyLower.startsWith('landscape?#')) {
+        landscapeKey = key;
+      }
+      if (keyLower === 'video' || keyLower.startsWith('video#')) {
+        videoKey = key;
       }
     }
 
+    console.log('[ASPECT RATIO] Found keys: ratio=' + aspectRatioKey + ', landscape=' + landscapeKey + ', video=' + videoKey);
+
+    // Try to set all properties that exist, handling errors gracefully
+    var propsToSet = {};
+
     if (aspectRatioKey) {
-      var propsToSet = {};
       propsToSet[aspectRatioKey] = randomRatio;
-      aspectRatioNode.setProperties(propsToSet);
-      console.log('[ASPECT RATIO] Set to ' + randomRatio);
-      return true;
-    } else {
-      console.log('[ASPECT RATIO] Could not find Aspect ratio property');
-      return false;
     }
+    if (landscapeKey && randomRatio !== '1:1') {
+      // Only set landscape for non-square ratios
+      propsToSet[landscapeKey] = randomLandscape;
+    }
+    if (videoKey) {
+      propsToSet[videoKey] = randomVideo;
+    }
+
+    if (Object.keys(propsToSet).length > 0) {
+      try {
+        aspectRatioNode.setProperties(propsToSet);
+        console.log('[ASPECT RATIO] ✓ Set properties: ' + JSON.stringify(propsToSet));
+      } catch (e) {
+        console.log('[ASPECT RATIO] Combined set failed, trying individually...');
+
+        // Try setting just the aspect ratio
+        if (aspectRatioKey) {
+          try {
+            aspectRatioNode.setProperties({ [aspectRatioKey]: randomRatio });
+            console.log('[ASPECT RATIO] ✓ Set aspect ratio to ' + randomRatio);
+          } catch (e2) {
+            console.log('[ASPECT RATIO] Could not set aspect ratio: ' + e2.message);
+          }
+        }
+      }
+    }
+
+    console.log('[ASPECT RATIO] Properties randomization complete');
+    return true;
 
   } catch (error) {
     var errorMsg = error ? (error.message || error.toString()) : 'Unknown error';
@@ -3130,6 +3197,9 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
 
   let appliedCount = 0;
 
+  // Track used images to prevent duplicates in the same thread
+  const usedImagesInThread = new Set();
+
   for (const index of selectedIndices) {
     const chatBlock = chatBlocks[index];
 
@@ -3368,34 +3438,62 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
       if (mediaType === 'media-chat') {
         try {
           // Find the Media chat instance within the Chat block
+          // Look for "Media chat" instance - could be direct child or nested
           var mediaChatInstance = null;
-          function findMediaChat(node) {
-            if (node.type === 'INSTANCE' && node.name.toLowerCase() === 'media chat') {
-              return node;
+          function findMediaChat(node, depth) {
+            if (depth > 10) return null;
+            // Check if this node is a Media chat instance
+            if (node.type === 'INSTANCE') {
+              var nodeName = node.name.toLowerCase();
+              if (nodeName === 'media chat' || nodeName.includes('media chat')) {
+                console.log('[MEDIA CHAT] Found instance: "' + node.name + '" at depth ' + depth);
+                return node;
+              }
             }
             if ('children' in node) {
               for (var c = 0; c < node.children.length; c++) {
-                var found = findMediaChat(node.children[c]);
+                var found = findMediaChat(node.children[c], depth + 1);
                 if (found) return found;
               }
             }
             return null;
           }
-          mediaChatInstance = findMediaChat(chatBlock);
+
+          console.log('[MEDIA CHAT] Searching for Media chat instance in Chat block "' + chatBlock.name + '"...');
+          mediaChatInstance = findMediaChat(chatBlock, 0);
 
           if (mediaChatInstance) {
-            console.log('[MEDIA CHAT] Found Media chat instance, randomizing aspect ratio...');
+            console.log('[MEDIA CHAT] Found Media chat instance: "' + mediaChatInstance.name + '"');
+
+            // Randomize aspect ratio, landscape, and video
+            console.log('[MEDIA CHAT] Randomizing aspect ratio properties...');
             await randomizeAspectRatio(mediaChatInstance);
 
+            // Apply contextual image (pass used images to avoid duplicates)
             console.log('[MEDIA CHAT] Applying contextual image...');
-            var imageUrl = pickContextualMediaImage('');
-            await applyImageToMediaChat(mediaChatInstance, imageUrl);
-            console.log('[MEDIA CHAT] ✓ Image applied to Media chat');
+            var imageUrl = pickContextualMediaImage('', usedImagesInThread);
+
+            if (imageUrl) {
+              usedImagesInThread.add(imageUrl); // Track this image as used
+              console.log('[MEDIA CHAT] Selected image URL: ' + imageUrl.substring(0, 50) + '... (used: ' + usedImagesInThread.size + ')');
+              await applyImageToMediaChat(mediaChatInstance, imageUrl);
+              console.log('[MEDIA CHAT] ✓ Image applied to Media chat');
+            } else {
+              console.log('[MEDIA CHAT] No image URL returned, skipping image application');
+            }
           } else {
             console.log('[MEDIA CHAT] Could not find Media chat instance within Chat block');
+            // Log all children for debugging
+            if ('children' in chatBlock) {
+              console.log('[MEDIA CHAT] Chat block children:');
+              for (var d = 0; d < chatBlock.children.length; d++) {
+                var child = chatBlock.children[d];
+                console.log('[MEDIA CHAT]   - "' + child.name + '" (' + child.type + ')');
+              }
+            }
           }
         } catch (imageError) {
-          console.log('[MEDIA CHAT] Error applying image:', imageError.message);
+          console.log('[MEDIA CHAT] Error applying image: ' + (imageError.message || imageError));
         }
       }
 
@@ -3405,16 +3503,30 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
   }
 
   // Restore gradient states after all Media chat operations
-  console.log('[MEDIA CHAT] Restoring ' + gradientStates.length + ' gradient states...');
+  // Determine if gradient was originally on (any non-zero strength) or off (all zero)
+  var gradientWasOn = false;
   for (var g = 0; g < gradientStates.length; g++) {
-    try {
-      var state = gradientStates[g];
-      state.instance.setProperties({ [state.key]: state.value });
-    } catch (restoreError) {
-      console.log('[MEDIA CHAT] Error restoring gradient:', restoreError.message);
+    var strengthValue = gradientStates[g].value;
+    // Check if strength is non-zero (could be string "100", "90", etc. or number)
+    var numValue = parseInt(strengthValue, 10);
+    if (!isNaN(numValue) && numValue > 0) {
+      gradientWasOn = true;
+      break;
     }
   }
-  console.log('[MEDIA CHAT] Gradient states restored');
+  console.log('[MEDIA CHAT] Gradient was originally ' + (gradientWasOn ? 'ON' : 'OFF'));
+
+  // Re-apply gradient state using the same functions as the gradient dropdown
+  if (gradientWasOn) {
+    // Apply gradient (same as when user selects "Gradient" from dropdown)
+    console.log('[MEDIA CHAT] Re-applying gradient pattern...');
+    applyGradientToThread(threadNode);
+  } else {
+    // Remove gradient (same as when user selects "No gradient" from dropdown)
+    console.log('[MEDIA CHAT] Ensuring gradient is OFF...');
+    removeGradientFromThread(threadNode);
+  }
+  console.log('[MEDIA CHAT] Gradient state restored: ' + (gradientWasOn ? 'ON' : 'OFF'));
 
   return { applied: appliedCount, total: chatBlocks.length };
 }

@@ -98,6 +98,60 @@ const STICKER_ROTATIONS = [4, 8, 16, -4, -8, -16];
 const STICKER_SIZE_MIN = 70;
 const STICKER_SIZE_MAX = 100;
 
+// ============================================================================
+// MEDIA IMAGE URLS BY CATEGORY
+// Images from the Widen DAM to apply to Media chat components
+// Organized by category for contextual matching
+// ============================================================================
+const MEDIA_IMAGES = {
+  selfies: [
+    'https://facebook.widen.net/content/v59w5zlqmy/png/png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/d9kazbig92/png/png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/ehurkxer6b/png/IG_Brand_Selfies_Direct_Response_2025_Portrait_2x3_ParkingLot7.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/bt3odvgggg/png/IG_Brand_Selfies_Direct_Response_2025_Group_Images_Portrait_2x3_Sky1.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/uc13mgfwt2/png/IG_Brand_Direct_Response_2025_Group_Images_Portrait_2x3_Sidewalk.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/pghrfptnyd/png/IG_Brand_Direct_Response_2025_Group_Images_Portrait_2x3_Sidewalk5.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/j4xjyobvzv/png/IG_Brand_Direct_Response_2025_Group_Images_Portrait_2x3_Sidewalk8.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/5ql2cczgcj/png/IG_Brand_Direct_Response_2025_Group_Images_Portrait_2x3_Sidewalk3.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/djbvuuxvaj/png/IGC_Tokyo_23_10115.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals'
+  ],
+  food: [
+    'https://facebook.widen.net/content/omm7ai7fzb/png/DebaHekmatLondonUKStill19_Instagram_Various_Toolkit_None_O.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/h4uc781b9f/png/ATXStillPolaroidFriendsDuoFoodSmiley40_Instagram_Various_Toolkit_None_O.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/u3w5n1fhxj/png/png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/xnfgfaof6o/png/png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/wsbd3ye8bd/png/IG_Brand_Toronto_2025_Object_Still_Life_or_Landscape_Lifestyle_3x2_Cake1.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/5utm4jsigs/png/IG_Brand_Direct_Response_2025_Objects_Portrait_2x3_Sidewalk7.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals'
+  ],
+  travel: [
+    'https://facebook.widen.net/content/sachoyfg8z/png/IGC_Austin23_iPhone_Day5_MISC_IMG_6328.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/z6wjk0wfux/png/png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/pqbslna797/png/IGC_Tokyo_23_10126.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/ztlau1posd/png/ATXStillSpringdaleFarmOutdoorTree_Instagram_Various_Toolkit_None_O.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/b0dzxuhfut/png/ATLStillEastAtlantaTexture06_Instagram_Various_Toolkit_None_O.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/h59b0dpvvz/png/ATLStillEastAtlantaSign02_Instagram_Various_Toolkit_None_O.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/capftque8v/png/ATXStillFarmfieldFieldWalk01_Instagram_Various_Toolkit_None_O.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals'
+  ],
+  funny: [
+    'https://facebook.widen.net/content/k1ann9emng/png/IG_Brand_Selfies_Direct_Response_2025_Devices_Portrait_2x3_Bathroom.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals'
+  ],
+  events: [
+    'https://facebook.widen.net/content/pxzbnixrxq/png/IG_Brand_Toronto_2025_Group_Picture_Selfie_Portrait_Lifestyle_3x2_Yarn1.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/rlmvvpjyor/png/IG_Brand_Direct_Response_2025_Group_Images_Portrait_2x3_Storefront.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/ulfbajrpar/png/IG_Brand_Direct_Response_2025_Group_Images_Portrait_2x3_Frontyard.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/fiqqvzdatz/png/SofiaGarciaPenaNYCStill02_Instagram_Various_Toolkit_None_O.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals'
+  ]
+};
+
+// Keyword mappings for contextual image selection
+const MEDIA_IMAGE_KEYWORDS = {
+  selfies: ['selfie', 'me', 'look', 'cute', 'pretty', 'beautiful', 'gorgeous', 'hot', 'fit', 'ootd', 'outfit', 'hair', 'makeup', 'face', 'pic', 'photo', 'mirror', 'ready', 'feeling'],
+  food: ['food', 'eat', 'eating', 'hungry', 'dinner', 'lunch', 'breakfast', 'brunch', 'coffee', 'drink', 'cake', 'pizza', 'sushi', 'yummy', 'delicious', 'tasty', 'cooking', 'recipe', 'restaurant', 'cafe'],
+  travel: ['travel', 'trip', 'vacation', 'holiday', 'flight', 'airport', 'beach', 'mountain', 'city', 'explore', 'adventure', 'road trip', 'nature', 'outside', 'outdoor', 'view', 'sunset', 'sunrise', 'sky', 'beautiful place'],
+  funny: ['lol', 'lmao', 'haha', 'funny', 'joke', 'meme', 'dead', 'dying', 'hilarious', 'bruh', 'wtf', 'omg', 'shook', 'wild', 'crazy', 'insane', 'no way', 'stop'],
+  events: ['party', 'birthday', 'celebration', 'wedding', 'concert', 'festival', 'event', 'fun', 'friends', 'group', 'squad', 'crew', 'hang', 'hangout', 'night out', 'going out', 'vibes', 'lit', 'turnt']
+};
+
 /**
  * Pick N random unique profiles from the available variants
  */
@@ -1640,6 +1694,230 @@ function pickContextualEmojiFromAvailable(messageText, emojiMap) {
 }
 
 /**
+ * Pick a contextual image URL based on message text content
+ * Matches keywords in the text to image categories
+ * Falls back to random selection if no matches
+ * @param {string} messageText - The text content near the Media chat
+ * @returns {string} - A URL from MEDIA_IMAGES
+ */
+function pickContextualMediaImage(messageText) {
+  const allImages = Object.values(MEDIA_IMAGES).flat();
+
+  if (allImages.length === 0) {
+    console.log('[MEDIA IMAGE] No images available');
+    return null;
+  }
+
+  if (!messageText || messageText.trim().length === 0) {
+    const picked = allImages[Math.floor(Math.random() * allImages.length)];
+    console.log('[MEDIA IMAGE] No text, random pick');
+    return picked;
+  }
+
+  const textLower = messageText.toLowerCase();
+  const categoryScores = {};
+
+  for (const [category, keywords] of Object.entries(MEDIA_IMAGE_KEYWORDS)) {
+    let score = 0;
+    for (const keyword of keywords) {
+      if (textLower.includes(keyword)) {
+        score += 1;
+        if (keyword.length > 4) score += 0.5;
+      }
+    }
+    categoryScores[category] = score;
+  }
+
+  let bestCategory = null;
+  let bestScore = 0;
+  for (const [category, score] of Object.entries(categoryScores)) {
+    if (score > bestScore) {
+      bestScore = score;
+      bestCategory = category;
+    }
+  }
+
+  if (bestCategory && bestScore > 0 && MEDIA_IMAGES[bestCategory] && MEDIA_IMAGES[bestCategory].length > 0) {
+    const categoryImages = MEDIA_IMAGES[bestCategory];
+    const picked = categoryImages[Math.floor(Math.random() * categoryImages.length)];
+    console.log('[MEDIA IMAGE] Text matched category "' + bestCategory + '" (score: ' + bestScore + ')');
+    return picked;
+  }
+
+  const randomPick = allImages[Math.floor(Math.random() * allImages.length)];
+  console.log('[MEDIA IMAGE] No keyword match, random pick');
+  return randomPick;
+}
+
+/**
+ * Apply an image to a Media chat component
+ * Finds the .Aspect ratio component and fills its active variant child with the image
+ * @param {InstanceNode} mediaChatNode - The Media chat instance
+ * @param {string} imageUrl - The URL of the image to apply
+ * @returns {Promise<boolean>} - True if successful
+ */
+async function applyImageToMediaChat(mediaChatNode, imageUrl) {
+  console.log('[MEDIA IMAGE] Applying image to "' + mediaChatNode.name + '"...');
+
+  try {
+    const image = await figma.createImageAsync(imageUrl);
+    console.log('[MEDIA IMAGE] Image fetched, hash: ' + image.hash);
+
+    let aspectRatioNode = null;
+
+    function findAspectRatio(node, depth) {
+      if (depth > 15 || aspectRatioNode) return;
+      const name = node.name;
+      if (name === '.Aspect ratio' || name.startsWith('.Aspect ratio')) {
+        aspectRatioNode = node;
+        console.log('[MEDIA IMAGE] Found .Aspect ratio: "' + node.name + '" (' + node.type + ')');
+        return;
+      }
+      if ('children' in node) {
+        for (const child of node.children) {
+          findAspectRatio(child, depth + 1);
+        }
+      }
+    }
+
+    findAspectRatio(mediaChatNode, 0);
+
+    if (!aspectRatioNode) {
+      console.log('[MEDIA IMAGE] .Aspect ratio not found in Media chat');
+      return false;
+    }
+
+    let aspectRatioFrame = null;
+    const aspectRatioPatterns = ['4:3', '16:9', '1:1', '9:16', '3:4', '2:3', '3:2'];
+
+    if ('children' in aspectRatioNode) {
+      for (const child of aspectRatioNode.children) {
+        const childName = child.name;
+        if (aspectRatioPatterns.includes(childName) || childName.match(/^\d+:\d+$/)) {
+          if (child.visible !== false) {
+            aspectRatioFrame = child;
+            console.log('[MEDIA IMAGE] Found aspect ratio frame: "' + child.name + '"');
+            break;
+          }
+        }
+      }
+
+      if (!aspectRatioFrame) {
+        for (const child of aspectRatioNode.children) {
+          if ((child.type === 'FRAME' || child.type === 'RECTANGLE') &&
+              child.visible !== false &&
+              !child.name.toLowerCase().includes('button') &&
+              !child.name.toLowerCase().includes('play')) {
+            aspectRatioFrame = child;
+            console.log('[MEDIA IMAGE] Using first suitable child: "' + child.name + '"');
+            break;
+          }
+        }
+      }
+    }
+
+    if (!aspectRatioFrame && 'fills' in aspectRatioNode) {
+      aspectRatioFrame = aspectRatioNode;
+      console.log('[MEDIA IMAGE] Using .Aspect ratio itself as fill target');
+    }
+
+    if (!aspectRatioFrame) {
+      console.log('[MEDIA IMAGE] Could not find aspect ratio frame to fill');
+      return false;
+    }
+
+    if ('fills' in aspectRatioFrame) {
+      var imageFill = {
+        type: 'IMAGE',
+        scaleMode: 'FILL',
+        imageHash: image.hash
+      };
+      aspectRatioFrame.fills = [imageFill];
+      console.log('[MEDIA IMAGE] Applied image fill to "' + aspectRatioFrame.name + '"');
+      return true;
+    } else {
+      console.log('[MEDIA IMAGE] Frame does not support fills');
+      return false;
+    }
+
+  } catch (error) {
+    var errorMsg = error ? (error.message || error.toString()) : 'Unknown error';
+    console.log('[MEDIA IMAGE] Error applying image: ' + errorMsg);
+    return false;
+  }
+}
+
+/**
+ * Randomize the aspect ratio on a Media chat component
+ * Finds the .Aspect ratio component and sets a random Aspect ratio variant
+ * @param {InstanceNode} mediaChatNode - The Media chat instance
+ * @returns {Promise<boolean>} - True if successful
+ */
+async function randomizeAspectRatio(mediaChatNode) {
+  var aspectRatioOptions = ['4:3', '1:1', '9:16', '3:4'];
+  var randomRatio = aspectRatioOptions[Math.floor(Math.random() * aspectRatioOptions.length)];
+  console.log('[ASPECT RATIO] Randomizing to ' + randomRatio);
+
+  try {
+    let aspectRatioNode = null;
+
+    function findAspectRatio(node, depth) {
+      if (depth > 15 || aspectRatioNode) return;
+      var name = node.name;
+      if (name === '.Aspect ratio' || name.startsWith('.Aspect ratio')) {
+        aspectRatioNode = node;
+        return;
+      }
+      if ('children' in node) {
+        for (const child of node.children) {
+          findAspectRatio(child, depth + 1);
+        }
+      }
+    }
+
+    findAspectRatio(mediaChatNode, 0);
+
+    if (!aspectRatioNode) {
+      console.log('[ASPECT RATIO] .Aspect ratio not found');
+      return false;
+    }
+
+    if (aspectRatioNode.type !== 'INSTANCE') {
+      console.log('[ASPECT RATIO] .Aspect ratio is not an instance');
+      return false;
+    }
+
+    var props = aspectRatioNode.componentProperties;
+    var propKeys = Object.keys(props);
+    var aspectRatioKey = null;
+
+    for (const key of propKeys) {
+      var keyLower = key.toLowerCase();
+      if (keyLower === 'aspect ratio' || keyLower.startsWith('aspect ratio')) {
+        aspectRatioKey = key;
+        break;
+      }
+    }
+
+    if (aspectRatioKey) {
+      var propsToSet = {};
+      propsToSet[aspectRatioKey] = randomRatio;
+      aspectRatioNode.setProperties(propsToSet);
+      console.log('[ASPECT RATIO] Set to ' + randomRatio);
+      return true;
+    } else {
+      console.log('[ASPECT RATIO] Could not find Aspect ratio property');
+      return false;
+    }
+
+  } catch (error) {
+    var errorMsg = error ? (error.message || error.toString()) : 'Unknown error';
+    console.log('[ASPECT RATIO] Error: ' + errorMsg);
+    return false;
+  }
+}
+
+/**
  * Find all chat components that can have reactions within a Chat Thread
  * This includes: Text chat, Media chat, and External link components
  * These are the components that have the Reaction boolean property
@@ -2779,6 +3057,32 @@ function findSwappableParent(textChatNode) {
 async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
   console.log(`[MEDIA CHAT] Applying media at ${percentage}% with types:`, mediaTypes);
 
+  // Capture gradient state before making changes
+  var gradientInstances = findGradientStepInstances(threadNode);
+  var gradientStates = [];
+  for (var i = 0; i < gradientInstances.length; i++) {
+    var instance = gradientInstances[i];
+    try {
+      var props = instance.componentProperties;
+      var keys = Object.keys(props);
+      for (var j = 0; j < keys.length; j++) {
+        var key = keys[j];
+        var keyLower = key.toLowerCase();
+        if (keyLower === 'strength' || keyLower.startsWith('strength#')) {
+          gradientStates.push({
+            instance: instance,
+            key: key,
+            value: props[key].value
+          });
+          break;
+        }
+      }
+    } catch (e) {
+      // Ignore errors
+    }
+  }
+  console.log('[MEDIA CHAT] Captured ' + gradientStates.length + ' gradient states');
+
   // Find all Chat block components
   const chatBlocks = findChatBlockComponents(threadNode);
 
@@ -3060,10 +3364,57 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
       console.log(`[MEDIA CHAT] ✓ Swapped Chat block ${index} to ${mediaType}`);
       appliedCount++;
 
+      // Now find the Media chat instance we just swapped in and apply image
+      if (mediaType === 'media-chat') {
+        try {
+          // Find the Media chat instance within the Chat block
+          var mediaChatInstance = null;
+          function findMediaChat(node) {
+            if (node.type === 'INSTANCE' && node.name.toLowerCase() === 'media chat') {
+              return node;
+            }
+            if ('children' in node) {
+              for (var c = 0; c < node.children.length; c++) {
+                var found = findMediaChat(node.children[c]);
+                if (found) return found;
+              }
+            }
+            return null;
+          }
+          mediaChatInstance = findMediaChat(chatBlock);
+
+          if (mediaChatInstance) {
+            console.log('[MEDIA CHAT] Found Media chat instance, randomizing aspect ratio...');
+            await randomizeAspectRatio(mediaChatInstance);
+
+            console.log('[MEDIA CHAT] Applying contextual image...');
+            var imageUrl = pickContextualMediaImage('');
+            await applyImageToMediaChat(mediaChatInstance, imageUrl);
+            console.log('[MEDIA CHAT] ✓ Image applied to Media chat');
+          } else {
+            console.log('[MEDIA CHAT] Could not find Media chat instance within Chat block');
+          }
+        } catch (imageError) {
+          console.log('[MEDIA CHAT] Error applying image:', imageError.message);
+        }
+      }
+
     } catch (error) {
       console.log(`[MEDIA CHAT] Error swapping Chat block:`, error.message);
     }
   }
+
+  // Restore gradient states after all Media chat operations
+  console.log('[MEDIA CHAT] Restoring ' + gradientStates.length + ' gradient states...');
+  for (var g = 0; g < gradientStates.length; g++) {
+    try {
+      var state = gradientStates[g];
+      state.instance.setProperties({ [state.key]: state.value });
+    } catch (restoreError) {
+      console.log('[MEDIA CHAT] Error restoring gradient:', restoreError.message);
+    }
+  }
+  console.log('[MEDIA CHAT] Gradient states restored');
 
   return { applied: appliedCount, total: chatBlocks.length };
 }

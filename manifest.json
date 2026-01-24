@@ -8,7 +8,8 @@
   "networkAccess": {
     "allowedDomains": [
       "https://corsproxy.io",
-      "https://api.llama.com"
+      "https://api.llama.com",
+      "https://facebook.widen.net"
     ]
   }
 }

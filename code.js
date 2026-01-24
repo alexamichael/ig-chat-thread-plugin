@@ -157,6 +157,48 @@ const MEDIA_IMAGE_KEYWORDS = {
   events: ['party', 'birthday', 'celebration', 'wedding', 'concert', 'festival', 'event', 'fun', 'friends', 'group', 'squad', 'crew', 'hang', 'hangout', 'night out', 'going out', 'vibes', 'lit', 'turnt']
 };
 
+// ============================================================================
+// Reels images for IG content share background
+// Organized by category for contextual matching (like Media chat images)
+// ============================================================================
+const REELS_IMAGES = {
+  selfies: [
+    'https://facebook.widen.net/content/xed4mmfznb/png/IG_Brand_Montclair_2025_Selfie_Selfie_2x3_Garage_15.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/vybuojmtt2/png/IG_Brand_Selfies_Direct_Response_2025_Portrait_2x3_Sky3.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/kwhrhdq0z4/png/IG_Brand_Selfies_Direct_Response_2025_Portrait_2x3_Sky2.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/l2c3u7rftb/png/IG_Brand_Selfies_Direct_Response_2025_Portrait_2x3_Ceiling.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/v7i2o1uj0b/png/IG_Brand_Toronto_2025_Group_Picture_Selfie_Device_Portrait_Lifestyle_2x3_Sunglasses7.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals'
+  ],
+  events: [
+    'https://facebook.widen.net/content/t3khsoxglv/png/IG_Brand_Montclair_2025_Portrait_3x2_Stage_41.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals'
+  ],
+  highschool: [
+    'https://facebook.widen.net/content/ja3aqsndyh/png/IG_Brand_Montclair_2025_Portrait_3x2_Garage_8.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals'
+  ],
+  creators: [
+    'https://facebook.widen.net/content/oyquknaerq/png/ATLStillUndergroundStairDance01_Instagram_Various_Toolkit_None_O.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals',
+    'https://facebook.widen.net/content/vmip9g3ko3/png/IGC_Austin23_iPhone_House1_Backyard_IMG_4892.png?position=c&quality=80&x.portal_shortcode_generated=8g6hmqgm&x.app=portals'
+  ],
+  business: [
+    // Note: Video URLs removed - Figma can only use image URLs for fills
+    // Add image URLs for business category when available
+  ],
+  sports: [
+    // Note: Video URLs removed - Figma can only use image URLs for fills
+    // Add image URLs for sports category when available
+  ]
+};
+
+// Keyword mappings for Reels contextual image selection (uses same keywords as Media chat)
+const REELS_IMAGE_KEYWORDS = {
+  selfies: ['selfie', 'me', 'look', 'cute', 'pretty', 'beautiful', 'gorgeous', 'hot', 'fit', 'ootd', 'outfit', 'hair', 'makeup', 'face', 'pic', 'photo', 'mirror', 'ready', 'feeling'],
+  events: ['party', 'birthday', 'celebration', 'wedding', 'concert', 'festival', 'event', 'fun', 'friends', 'group', 'squad', 'crew', 'hang', 'hangout', 'night out', 'going out', 'vibes', 'lit', 'turnt', 'stage', 'show'],
+  highschool: ['school', 'highschool', 'high school', 'class', 'homework', 'study', 'exam', 'test', 'teacher', 'student', 'campus', 'teen', 'teenager', 'grade', 'freshman', 'senior', 'junior', 'prom'],
+  creators: ['create', 'creator', 'content', 'video', 'edit', 'shoot', 'film', 'camera', 'production', 'behind the scenes', 'bts', 'collab', 'collaboration', 'influencer', 'dance', 'dancing'],
+  business: ['work', 'business', 'meeting', 'office', 'job', 'career', 'professional', 'project', 'deadline', 'client', 'team', 'company', 'startup', 'entrepreneur', 'hustle', 'grind'],
+  sports: ['sport', 'sports', 'game', 'play', 'player', 'team', 'win', 'score', 'match', 'practice', 'training', 'workout', 'gym', 'fitness', 'athlete', 'run', 'running', 'bike', 'bmx', 'skate', 'ball']
+};
+
 /**
  * Pick N random unique profiles from the available variants
  */
@@ -192,6 +234,137 @@ function findFacepilePersonComponents(headerNode) {
 
   searchForPerson(headerNode);
   return personComponents;
+}
+
+/**
+ * Pick a random Reels image from REELS_IMAGES (categorized)
+ * Uses keyword matching similar to Media chat images
+ * @param {Set} usedImages - Set of already-used image URLs to avoid duplicates
+ * @returns {string} - A URL from REELS_IMAGES
+ */
+function pickReelsImage(usedImages) {
+  const allImages = Object.values(REELS_IMAGES).flat();
+
+  // Safety check - if no images configured
+  if (allImages.length === 0) {
+    console.log('[REELS IMAGE] No images configured in REELS_IMAGES');
+    return null;
+  }
+
+  // Filter out already-used images
+  const usedSet = usedImages || new Set();
+  const availableImages = allImages.filter(url => !usedSet.has(url));
+
+  console.log('[REELS IMAGE] Total images: ' + allImages.length + ', Used: ' + usedSet.size + ', Available: ' + availableImages.length);
+
+  if (availableImages.length === 0) {
+    console.log('[REELS IMAGE] All images used, resetting to allow repeats');
+    // If all images are used, allow repeats by using all images
+    const picked = allImages[Math.floor(Math.random() * allImages.length)];
+    return picked;
+  }
+
+  const picked = availableImages[Math.floor(Math.random() * availableImages.length)];
+  console.log('[REELS IMAGE] Random pick from available');
+  return picked;
+}
+
+/**
+ * Apply an image to a Reels (IG content share) component
+ * Finds the .Aspect ratio component and fills its active variant child with the image
+ * @param {InstanceNode} igContentShareNode - The IG content share instance
+ * @param {string} imageUrl - The URL of the image to apply
+ * @returns {Promise<boolean>} - True if successful
+ */
+async function applyImageToReels(igContentShareNode, imageUrl) {
+  console.log('[REELS IMAGE] Applying image to "' + igContentShareNode.name + '"...');
+
+  try {
+    const image = await figma.createImageAsync(imageUrl);
+    console.log('[REELS IMAGE] Image fetched, hash: ' + image.hash);
+
+    let aspectRatioNode = null;
+
+    function findAspectRatio(node, depth) {
+      if (depth > 15 || aspectRatioNode) return;
+      const name = node.name;
+      if (name === '.Aspect ratio' || name.startsWith('.Aspect ratio')) {
+        aspectRatioNode = node;
+        console.log('[REELS IMAGE] Found .Aspect ratio: "' + node.name + '" (' + node.type + ')');
+        return;
+      }
+      if ('children' in node) {
+        for (const child of node.children) {
+          findAspectRatio(child, depth + 1);
+        }
+      }
+    }
+
+    findAspectRatio(igContentShareNode, 0);
+
+    if (!aspectRatioNode) {
+      console.log('[REELS IMAGE] .Aspect ratio not found in IG content share');
+      return false;
+    }
+
+    let aspectRatioFrame = null;
+    const aspectRatioPatterns = ['4:3', '16:9', '1:1', '9:16', '3:4', '2:3', '3:2'];
+
+    if ('children' in aspectRatioNode) {
+      for (const child of aspectRatioNode.children) {
+        const childName = child.name;
+        if (aspectRatioPatterns.includes(childName) || childName.match(/^\d+:\d+$/)) {
+          if (child.visible !== false) {
+            aspectRatioFrame = child;
+            console.log('[REELS IMAGE] Found aspect ratio frame: "' + child.name + '"');
+            break;
+          }
+        }
+      }
+
+      if (!aspectRatioFrame) {
+        for (const child of aspectRatioNode.children) {
+          if ((child.type === 'FRAME' || child.type === 'RECTANGLE') &&
+              child.visible !== false &&
+              !child.name.toLowerCase().includes('button') &&
+              !child.name.toLowerCase().includes('play')) {
+            aspectRatioFrame = child;
+            console.log('[REELS IMAGE] Using first suitable child: "' + child.name + '"');
+            break;
+          }
+        }
+      }
+    }
+
+    if (!aspectRatioFrame && 'fills' in aspectRatioNode) {
+      aspectRatioFrame = aspectRatioNode;
+      console.log('[REELS IMAGE] Using .Aspect ratio itself as fill target');
+    }
+
+    if (!aspectRatioFrame) {
+      console.log('[REELS IMAGE] Could not find aspect ratio frame to fill');
+      return false;
+    }
+
+    if ('fills' in aspectRatioFrame) {
+      var imageFill = {
+        type: 'IMAGE',
+        scaleMode: 'FILL',
+        imageHash: image.hash
+      };
+      aspectRatioFrame.fills = [imageFill];
+      console.log('[REELS IMAGE] ✓ Applied image fill to "' + aspectRatioFrame.name + '"');
+      return true;
+    } else {
+      console.log('[REELS IMAGE] Frame does not support fills');
+      return false;
+    }
+
+  } catch (error) {
+    var errorMsg = error ? (error.message || error.toString()) : 'Unknown error';
+    console.log('[REELS IMAGE] Error applying image: ' + errorMsg);
+    return false;
+  }
 }
 
 /**
@@ -3129,6 +3302,37 @@ function findSwappableParent(textChatNode) {
 async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
   console.log(`[MEDIA CHAT] Applying media at ${percentage}% with types:`, mediaTypes);
 
+  // Detect if this is a group chat (3+ people) by checking "Group chat?" property
+  var isGroupChat = false;
+  try {
+    if (threadNode.type === 'INSTANCE') {
+      var threadProps = threadNode.componentProperties;
+      var threadPropKeys = Object.keys(threadProps);
+      for (var tp = 0; tp < threadPropKeys.length; tp++) {
+        var tpKey = threadPropKeys[tp];
+        if (tpKey.toLowerCase().includes('group chat')) {
+          var tpValue = threadProps[tpKey].value;
+          isGroupChat = tpValue === true || tpValue === 'true' || tpValue === 'Yes' || tpValue === 'yes';
+          console.log('[MEDIA CHAT] Detected Group chat property: ' + tpKey + ' = ' + tpValue + ' → isGroupChat = ' + isGroupChat);
+          break;
+        }
+      }
+    }
+  } catch (gcError) {
+    console.log('[MEDIA CHAT] Could not detect group chat status:', gcError.message);
+  }
+
+  // Get assigned profiles for eyebrow text (A, B, C)
+  var assignedProfiles = null;
+  if (isGroupChat) {
+    try {
+      assignedProfiles = discoverAssignedProfiles(threadNode);
+      console.log('[MEDIA CHAT] Discovered profiles for eyebrow - A: ' + assignedProfiles.A + ', B: ' + assignedProfiles.B + ', C: ' + assignedProfiles.C);
+    } catch (profError) {
+      console.log('[MEDIA CHAT] Could not discover profiles:', profError.message);
+    }
+  }
+
   // Capture gradient state before making changes
   var gradientInstances = findGradientStepInstances(threadNode);
   var gradientStates = [];
@@ -3253,24 +3457,29 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
           }
         }
       } else {
-        // Multiple bubbles - pick a random position (top, mid, or bottom)
-        const positions = ['top', 'mid', 'bottom'];
-        position = positions[Math.floor(Math.random() * positions.length)];
-
+        // Multiple bubbles - find all available positions for this Chat block
+        const availableSlots = [];
         for (const key of propKeys) {
           const keyLower = key.toLowerCase();
           if (keyLower.includes(sideType) && props[key].type === 'INSTANCE_SWAP') {
-            if (position === 'mid' && keyLower.includes('mid')) {
-              propKeyToSwap = key;
-              break;
-            } else if (position === 'top' && keyLower.includes('top')) {
-              propKeyToSwap = key;
-              break;
-            } else if (position === 'bottom' && keyLower.includes('bottom')) {
-              propKeyToSwap = key;
-              break;
+            if (keyLower.includes('top')) {
+              availableSlots.push({ key: key, position: 'top' });
+            } else if (keyLower.includes('mid')) {
+              availableSlots.push({ key: key, position: 'mid' });
+            } else if (keyLower.includes('bottom')) {
+              availableSlots.push({ key: key, position: 'bottom' });
             }
           }
+        }
+
+        console.log(`[MEDIA CHAT] Available slots: ${availableSlots.map(s => s.position).join(', ')}`);
+
+        if (availableSlots.length > 0) {
+          // Pick a random slot from available ones
+          const randomSlot = availableSlots[Math.floor(Math.random() * availableSlots.length)];
+          propKeyToSwap = randomSlot.key;
+          position = randomSlot.position;
+          console.log(`[MEDIA CHAT] Selected position: ${position} (slot: ${propKeyToSwap})`);
         }
       }
 
@@ -3355,12 +3564,10 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
           console.log(`[MEDIA CHAT]   - Variant: "${childName}" → Side=${variantSide}, Bubble=${variantBubble}, Props=${JSON.stringify(variantProps)}`);
 
           // Check if this variant matches what we need
-          // For components with variant overrides (like IG content share for reels),
-          // Chat bubble matching is not required - just match To - From and the override props
           let sideMatches = variantSide === targetSide;
           let bubbleMatches = variantBubble === targetBubble;
 
-          // If we have variant overrides, Chat bubble is optional (some components like IG content share don't have it)
+          // If we have variant overrides (like IG content share for reels with State=Share reels)
           if (hasOverrides && sideMatches) {
             // Check if all override properties match
             let overridesMatch = true;
@@ -3372,8 +3579,19 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
             }
 
             if (overridesMatch) {
-              console.log(`[MEDIA CHAT]     ✓ MATCH! Side=${variantSide}, overrides match`);
-              return child;
+              // Also check Chat bubble if the variant has it
+              if (variantBubble !== null) {
+                // This component has Chat bubble variants - must also match bubble position
+                if (bubbleMatches) {
+                  console.log(`[MEDIA CHAT]     ✓ MATCH! Side=${variantSide}, Bubble=${variantBubble}, overrides match`);
+                  return child;
+                }
+                // Continue searching for correct bubble position
+              } else {
+                // No Chat bubble in this variant - match on side + overrides only
+                console.log(`[MEDIA CHAT]     ✓ MATCH! Side=${variantSide}, overrides match (no bubble)`);
+                return child;
+              }
             }
           } else if (sideMatches && bubbleMatches) {
             // Standard matching - both side and bubble must match
@@ -3440,7 +3658,9 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
         console.log(`[MEDIA CHAT] Searching document for individual components...`);
 
         // Look for components that match our criteria
-        const searchPattern = `To - From=${targetSide}, Chat bubble=${targetBubble}`;
+        const variantOverrides = MEDIA_TYPE_VARIANT_OVERRIDES[mediaType] || {};
+        const hasOverrides = Object.keys(variantOverrides).length > 0;
+
         const allComponents = figma.root.findAll(n => {
           if (n.type !== 'COMPONENT') return false;
           if (n.name.toLowerCase().includes('ephemeral')) return false;
@@ -3448,7 +3668,20 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
           // Check if parent is the component set we want
           const parent = n.parent;
           if (parent && parent.type === 'COMPONENT_SET' && parent.name === targetComponentSetName) {
-            return n.name.includes(searchPattern);
+            // Must match To - From
+            if (!n.name.includes(`To - From=${targetSide}`)) return false;
+
+            // If we have variant overrides (like State=Share reels), must match those too
+            if (hasOverrides) {
+              for (const [propName, propValue] of Object.entries(variantOverrides)) {
+                if (!n.name.includes(`${propName}=${propValue}`)) return false;
+              }
+            } else {
+              // No overrides - must match Chat bubble
+              if (!n.name.includes(`Chat bubble=${targetBubble}`)) return false;
+            }
+
+            return true;
           }
           return false;
         });
@@ -3532,6 +3765,267 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
           }
         } catch (imageError) {
           console.log('[MEDIA CHAT] Error applying image: ' + (imageError.message || imageError));
+        }
+      }
+
+      // Handle Reels: Randomize profile photo and username inside IG content share
+      if (mediaType === 'reels') {
+        try {
+          // Find the IG content share instance within the Chat block
+          var igContentShareInstance = null;
+          function findIGContentShare(node, depth) {
+            if (depth > 10) return null;
+            if (node.type === 'INSTANCE') {
+              var nodeName = node.name.toLowerCase();
+              if (nodeName === 'ig content share' || nodeName.includes('ig content share')) {
+                console.log('[REELS] Found instance: "' + node.name + '" at depth ' + depth);
+                return node;
+              }
+            }
+            if ('children' in node) {
+              for (var c = 0; c < node.children.length; c++) {
+                var found = findIGContentShare(node.children[c], depth + 1);
+                if (found) return found;
+              }
+            }
+            return null;
+          }
+
+          console.log('[REELS] Searching for IG content share instance in Chat block "' + chatBlock.name + '"...');
+
+          igContentShareInstance = findIGContentShare(chatBlock, 0);
+
+          if (igContentShareInstance) {
+            console.log('[REELS] Found IG content share instance: "' + igContentShareInstance.name + '"');
+
+            // Pick a random profile from PROFILE_VARIANTS (same logic as Person A selection)
+            var randomProfile = PROFILE_VARIANTS[Math.floor(Math.random() * PROFILE_VARIANTS.length)];
+            console.log('[REELS] Selected random profile: "' + randomProfile + '"');
+
+            // Find and set profile photo AND username text inside the IG content share component
+            // 1. Handle property on .People profile pictures controls the photo
+            // 2. Title text node needs to be updated separately for the username
+            var profileSet = false;
+            var usernameSet = false;
+
+            async function setReelsProfile(node, depth) {
+              if (depth > 15) return;
+
+              var nodeName = node.name;
+              var nodeNameLower = nodeName.toLowerCase();
+
+              // Look for .People profile pictures component to set the profile photo
+              if (node.type === 'INSTANCE') {
+                var isPeopleProfile = nodeName === '.People profile pictures' ||
+                                      nodeNameLower === '.people profile pictures' ||
+                                      nodeNameLower.includes('people profile pictures');
+
+                if (isPeopleProfile) {
+                  try {
+                    var props = node.componentProperties;
+                    var propKeys = Object.keys(props);
+                    console.log('[REELS] Found profile component "' + nodeName + '" with ' + propKeys.length + ' properties');
+
+                    for (var k = 0; k < propKeys.length; k++) {
+                      var key = propKeys[k];
+                      if (key.toLowerCase().includes('handle')) {
+                        console.log('[REELS] Setting Handle property "' + key + '" to "' + randomProfile + '"');
+                        node.setProperties({ [key]: randomProfile });
+                        console.log('[REELS] ✓ Set profile photo Handle to "' + randomProfile + '"');
+                        profileSet = true;
+                        break;
+                      }
+                    }
+                  } catch (e) {
+                    console.log('[REELS] Could not set profile Handle:', e.message);
+                  }
+                }
+              }
+
+              // Look for Title text node to update the username text
+              // Path is: IG content share > XMA > .Media header > Text > Title text > Title
+              if (node.type === 'TEXT' && !usernameSet) {
+                // Check if this is the Title text node (exact name match preferred)
+                if (nodeNameLower === 'title' || nodeName === 'Title') {
+                  var textContent = node.characters || '';
+                  console.log('[REELS] Found Title text node with content: "' + textContent + '"');
+
+                  // Only update if it looks like a username (short text, no spaces typically)
+                  if (textContent.length > 0 && textContent.length < 50) {
+                    try {
+                      await figma.loadFontAsync(node.fontName);
+                      node.characters = randomProfile;
+                      console.log('[REELS] ✓ Set username text to "' + randomProfile + '"');
+                      usernameSet = true;
+                    } catch (fontError) {
+                      console.log('[REELS] Font load error, trying without:', fontError.message);
+                      try {
+                        node.characters = randomProfile;
+                        console.log('[REELS] ✓ Set username text to "' + randomProfile + '" (without font load)');
+                        usernameSet = true;
+                      } catch (e2) {
+                        console.log('[REELS] Could not update username text:', e2.message);
+                      }
+                    }
+                  }
+                }
+              }
+
+              if ('children' in node) {
+                for (var c = 0; c < node.children.length; c++) {
+                  await setReelsProfile(node.children[c], depth + 1);
+                }
+              }
+            }
+
+            await setReelsProfile(igContentShareInstance, 0);
+
+            if (profileSet && usernameSet) {
+              console.log('[REELS] ✓ Complete! Profile photo and username both set to "' + randomProfile + '"');
+            } else if (profileSet) {
+              console.log('[REELS] ⚠ Profile photo set, but username text not found');
+            } else if (usernameSet) {
+              console.log('[REELS] ⚠ Username text set, but profile photo not found');
+            } else {
+              console.log('[REELS] ✗ Could not find profile or username components');
+              // Debug: log all children to help identify the structure
+              function logChildren(node, indent) {
+                if (indent.length > 20) return;
+                console.log('[REELS] ' + indent + '"' + node.name + '" (' + node.type + ')');
+                  if ('children' in node) {
+                    for (var c = 0; c < node.children.length; c++) {
+                      logChildren(node.children[c], indent + '  ');
+                    }
+                  }
+                }
+                logChildren(igContentShareInstance, '');
+              }
+
+              // Apply random Reels image to the IG content share .Aspect ratio
+              try {
+                console.log('[REELS] Applying background image to IG content share...');
+                var reelsImageUrl = pickReelsImage(usedImagesInThread);
+                if (reelsImageUrl) {
+                  usedImagesInThread.add(reelsImageUrl); // Track this image as used
+                  console.log('[REELS] Selected image URL: ' + reelsImageUrl.substring(0, 60) + '...');
+                  await applyImageToReels(igContentShareInstance, reelsImageUrl);
+                  console.log('[REELS] ✓ Background image applied');
+                } else {
+                  console.log('[REELS] No image URL returned, skipping image application');
+                }
+              } catch (reelsImageError) {
+                console.log('[REELS] Error applying image: ' + (reelsImageError.message || reelsImageError));
+              }
+            } else {
+              console.log('[REELS] Could not find IG content share instance within Chat block');
+            }
+          } catch (reelsError) {
+            console.log('[REELS] Error setting profile: ' + (reelsError.message || reelsError));
+          }
+
+          // Handle Eyebrow text for Reels - only show in group chats (3+ people)
+          try {
+            console.log('[REELS EYEBROW] isGroupChat = ' + isGroupChat);
+
+            // Find the eyebrow container/text in this Chat block
+          var eyebrowNode = null;
+          function findEyebrowNode(node, depth) {
+            if (depth > 15 || eyebrowNode) return;
+            var nodeName = node.name.toLowerCase();
+
+            // Look for eyebrow container
+            if (nodeName.includes('eyebrow')) {
+              console.log('[REELS EYEBROW] Found eyebrow container: "' + node.name + '"');
+              eyebrowNode = node;
+              return;
+            }
+
+            if ('children' in node) {
+              for (var c = 0; c < node.children.length; c++) {
+                findEyebrowNode(node.children[c], depth + 1);
+                if (eyebrowNode) return;
+              }
+            }
+          }
+          findEyebrowNode(chatBlock, 0);
+
+          if (eyebrowNode) {
+            if (isGroupChat && assignedProfiles) {
+              // Show eyebrow in group chat - set username based on sender
+              console.log('[REELS EYEBROW] Group chat - showing eyebrow with sender username');
+
+              // Make eyebrow visible
+              eyebrowNode.visible = true;
+
+              // Determine username based on sender type (from sideType variable)
+              var eyebrowUsername = '';
+              if (sideType === 'sender') {
+                // Person A (sender) - use random profile from list
+                eyebrowUsername = assignedProfiles.A || PROFILE_VARIANTS[Math.floor(Math.random() * PROFILE_VARIANTS.length)];
+                console.log('[REELS EYEBROW] Sender (Person A) - using: ' + eyebrowUsername);
+              } else {
+                // Person B or C (recipient) - need to match the profile photo of this Chat block
+                var blockProfileNode = findProfileInBlock(chatBlock);
+                if (blockProfileNode && blockProfileNode.type === 'INSTANCE') {
+                  try {
+                    var blockProps = blockProfileNode.componentProperties;
+                    for (var bpKey of Object.keys(blockProps)) {
+                      if (bpKey.toLowerCase().includes('handle')) {
+                        eyebrowUsername = blockProps[bpKey].value;
+                        console.log('[REELS EYEBROW] Recipient - matched profile Handle: ' + eyebrowUsername);
+                        break;
+                      }
+                    }
+                  } catch (bpError) {
+                    console.log('[REELS EYEBROW] Could not get block profile:', bpError.message);
+                  }
+                }
+
+                // Fallback to B or C profiles
+                if (!eyebrowUsername) {
+                  eyebrowUsername = assignedProfiles.B || assignedProfiles.C || 'username';
+                  console.log('[REELS EYEBROW] Using fallback profile: ' + eyebrowUsername);
+                }
+              }
+
+              // Find and set the text node inside eyebrow
+              var eyebrowTextNode = findAdminText(eyebrowNode);
+              if (!eyebrowTextNode) {
+                // Try to find any text node inside eyebrow
+                function findTextInEyebrow(node) {
+                  if (node.type === 'TEXT') return node;
+                  if ('children' in node) {
+                    for (var c = 0; c < node.children.length; c++) {
+                      var found = findTextInEyebrow(node.children[c]);
+                      if (found) return found;
+                    }
+                  }
+                  return null;
+                }
+                eyebrowTextNode = findTextInEyebrow(eyebrowNode);
+              }
+
+              if (eyebrowTextNode && eyebrowTextNode.type === 'TEXT') {
+                try {
+                  await figma.loadFontAsync(eyebrowTextNode.fontName);
+                  eyebrowTextNode.characters = eyebrowUsername;
+                  console.log('[REELS EYEBROW] ✓ Set eyebrow text to: ' + eyebrowUsername);
+                } catch (fontErr) {
+                  console.log('[REELS EYEBROW] Font error:', fontErr.message);
+                }
+              } else {
+                console.log('[REELS EYEBROW] Could not find text node in eyebrow');
+              }
+            } else {
+              // Not a group chat - hide eyebrow
+              console.log('[REELS EYEBROW] Not a group chat - hiding eyebrow');
+              eyebrowNode.visible = false;
+            }
+          } else {
+            console.log('[REELS EYEBROW] No eyebrow container found in Chat block');
+          }
+        } catch (eyebrowError) {
+          console.log('[REELS EYEBROW] Error handling eyebrow:', eyebrowError.message);
         }
       }
 

@@ -817,6 +817,9 @@
           participants = 2;
         }
 
+        // Capture current gradient state BEFORE making changes
+        const gradientStateBefore = gradientSelect.value;
+
         // Send message to plugin to toggle the component property
         parent.postMessage({
           pluginMessage: {
@@ -825,6 +828,15 @@
             participants: participants
           }
         }, '*');
+
+        // Restore gradient state after a delay to ensure toggle completes
+        setTimeout(() => {
+          if (gradientStateBefore === 'gradient') {
+            parent.postMessage({ pluginMessage: { type: 'apply-gradient' } }, '*');
+          } else {
+            parent.postMessage({ pluginMessage: { type: 'remove-gradient' } }, '*');
+          }
+        }, 500);
       });
     });
 
@@ -846,44 +858,44 @@
     /**
      * Get the target height based on length slider setting
      * Short (0) = 917px
-     * Medium (50) = 1064px  
-     * Long (100) = unlimited (full thread)
+     * Medium (50) = 1064px
+     * Long (100) = 2200px
      */
     function getTargetHeight() {
       const sliderValue = parseInt(lengthSlider.value);
-      
+
       if (sliderValue === 0) {
         return 917;
       } else if (sliderValue === 50) {
         return 1064;
       } else {
-        return null; // Long - no limit
+        return 2200; // Long - max 2200px
       }
     }
 
     /**
      * Get the max number of messages based on length slider setting
-     * This is now just used to limit what we send to LLM
-     * Long (100) = full length (~2127px, all messages)
-     * Medium (50) = ~1/2 length (~1064px)
-     * Short (0) = max 656px height
+     * Used to limit what we send to LLM when generating new conversations
+     * Long (100) = ~2200px worth of messages
+     * Medium (50) = ~1064px
+     * Short (0) = ~917px
      *
      * We estimate ~80px average per message bubble
-     * Short: 656px / 80 ≈ 8 messages
+     * Short: 917px / 80 ≈ 11 messages (cap at 8)
      * Medium: 1064px / 80 ≈ 13 messages
-     * Long: full structure (no limit)
+     * Long: 2200px / 80 ≈ 27 messages
      */
     function getMaxMessagesForLength(structureLength) {
       const sliderValue = parseInt(lengthSlider.value);
 
       if (sliderValue === 100) {
-        // Long - use full structure
-        return structureLength;
+        // Long - up to 27 messages for 2200px
+        return Math.min(27, structureLength);
       } else if (sliderValue === 50) {
         // Medium - approximately half
         return Math.min(Math.ceil(structureLength / 2), 13);
       } else {
-        // Short - max ~8 messages for 656px
+        // Short - max 8 messages
         return Math.min(8, structureLength);
       }
     }
@@ -896,40 +908,33 @@
       return structure.slice(0, maxMessages);
     }
 
-      // Length slider change handler - regenerate conversation when length changes
-    lengthSlider.addEventListener('change', async () => {
-      // Only regenerate if we have a topic and structure
-      const customTopic = customTopicInput.value.trim();
-      const topicToUse = customTopic || selectedTopic;
+    /**
+     * Length slider change handler
+     * Works independently of topic selection - adjusts existing conversation visibility
+     * Does NOT call API - only shows/hides chat blocks based on height
+     */
+    lengthSlider.addEventListener('change', () => {
+      // Capture current gradient state BEFORE making changes
+      const gradientStateBefore = gradientSelect.value;
 
-      if (!topicToUse || !currentStructure || currentStructure.length === 0) {
-        return; // No topic selected or no structure available
-      }
+      showStatus('Adjusting conversation length...', 'info');
 
-      generateBtn.disabled = true;
-      showStatus('Regenerating conversation for new length...', 'info');
-
-      try {
-        const isCustom = !!customTopic;
-        const limitedStructure = getLimitedStructure(currentStructure);
-        const maxMessages = getMaxMessagesForLength(currentStructure.length);
-        const messages = await generateConversationWithLlama(topicToUse, limitedStructure, isCustom);
-
-        if (messages && messages.length > 0) {
-          parent.postMessage({
-            pluginMessage: {
-              type: 'populate-conversation',
-              messages: messages,
-              maxMessages: maxMessages,
-              targetHeight: getTargetHeight()
-            }
-          }, '*');
+      // Always send adjust-length to Figma - works on existing conversation
+      parent.postMessage({
+        pluginMessage: {
+          type: 'adjust-length',
+          targetHeight: getTargetHeight()
         }
-      } catch (error) {
-        showStatus('Error: ' + error.message, 'error');
-      } finally {
-        generateBtn.disabled = false;
-      }
+      }, '*');
+
+      // Restore gradient state after a delay to ensure adjust completes
+      setTimeout(() => {
+        if (gradientStateBefore === 'gradient') {
+          parent.postMessage({ pluginMessage: { type: 'apply-gradient' } }, '*');
+        } else {
+          parent.postMessage({ pluginMessage: { type: 'remove-gradient' } }, '*');
+        }
+      }, 500);
     });
 
     // Topic prompts for Llama - 2 person version
@@ -981,6 +986,9 @@
 
       // Auto-generate when a topic is selected
       if (selectedTopic && currentStructure && currentStructure.length > 0) {
+        // Capture current gradient state BEFORE making changes
+        const gradientStateBefore = gradientSelect.value;
+
         generateBtn.disabled = true;
         showStatus('Generating conversation...', 'info');
 
@@ -997,6 +1005,15 @@
               targetHeight: getTargetHeight()
             }
           }, '*');
+
+          // Restore gradient state after a delay to ensure populate completes
+          setTimeout(() => {
+            if (gradientStateBefore === 'gradient') {
+              parent.postMessage({ pluginMessage: { type: 'apply-gradient' } }, '*');
+            } else {
+              parent.postMessage({ pluginMessage: { type: 'remove-gradient' } }, '*');
+            }
+          }, 500);
         } catch (error) {
           showStatus(`Error: ${error.message}`, 'error');
           generateBtn.disabled = false;
@@ -1088,6 +1105,38 @@
         default:
           return new LlamaAPIError(`API error (${status}): ${errorText.substring(0, 100)}`, 'unknown', errorText);
       }
+    }
+
+    async function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function fetchWithRetry(url, options, maxRetries = 3) {
+      let lastError;
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          const response = await fetchWithTimeout(url, options);
+
+          if (response.status === 429) {
+            const waitTime = Math.pow(2, attempt) * 2000;
+            showStatus(`Rate limited. Retrying in ${waitTime / 1000} seconds...`, 'info');
+            await sleep(waitTime);
+            continue;
+          }
+
+          return response;
+        } catch (error) {
+          lastError = error;
+          if (error.type === 'rate_limit' || (error.message && error.message.includes('Rate limit'))) {
+            const waitTime = Math.pow(2, attempt) * 2000;
+            showStatus(`Rate limited. Retrying in ${waitTime / 1000} seconds...`, 'info');
+            await sleep(waitTime);
+            continue;
+          }
+          throw error;
+        }
+      }
+      throw lastError || new LlamaAPIError('Max retries exceeded due to rate limiting. Please wait a minute and try again.', 'rate_limit');
     }
 
     async function generateConversationWithLlama(topic, structure, isCustomTopic = false) {
@@ -1276,6 +1325,9 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
       const hasTopicSelected = selectedTopic || (customTopic && customTopic.length > 0);
       if (!hasTopicSelected || !currentStructure) return;
 
+      // Capture current gradient state BEFORE making changes
+      const gradientStateBefore = gradientSelect.value;
+
       generateBtn.disabled = true;
       generateBtn.innerHTML = '<span class="loading-spinner"></span>';
       showStatus('Analyzing structure and generating conversation...', 'info');
@@ -1295,6 +1347,15 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
             targetHeight: getTargetHeight()
           }
         }, '*');
+
+        // Restore gradient state after a delay to ensure populate completes
+        setTimeout(() => {
+          if (gradientStateBefore === 'gradient') {
+            parent.postMessage({ pluginMessage: { type: 'apply-gradient' } }, '*');
+          } else {
+            parent.postMessage({ pluginMessage: { type: 'remove-gradient' } }, '*');
+          }
+        }, 500);
       } catch (error) {
         showStatus(`Error: ${error.message}`, 'error');
         generateBtn.disabled = false;
@@ -1433,6 +1494,20 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
 
     // Gradient dropdown handler
     const gradientSelect = document.getElementById('gradient-select');
+
+    // Helper function to apply current gradient setting after text chat updates
+    function applyCurrentGradientSetting() {
+      const value = gradientSelect.value;
+      if (value === 'gradient') {
+        parent.postMessage({
+          pluginMessage: { type: 'apply-gradient' }
+        }, '*');
+      } else {
+        parent.postMessage({
+          pluginMessage: { type: 'remove-gradient' }
+        }, '*');
+      }
+    }
 
     gradientSelect.addEventListener('change', () => {
       const value = gradientSelect.value;

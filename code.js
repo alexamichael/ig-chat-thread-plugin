@@ -5042,8 +5042,10 @@ console.log(`[PROFILE] msg.isGroupChat = ${msg.isGroupChat}`);
               const { titleNode, bodyNode } = findHeaderTitleAndBody(headerModule);
 
               if (titleNode) {
-                console.log('[HEADER TEXT] Setting Title to: "Friend group"');
-                await setTextNodeContent(titleNode, 'Friend group');
+                // Use Person B and Person C's usernames for the title
+                const groupTitle = `${profilesAssigned.B}, ${profilesAssigned.C}`;
+                console.log(`[HEADER TEXT] Setting Title to: "${groupTitle}"`);
+                await setTextNodeContent(titleNode, groupTitle);
               } else {
                 console.log('[HEADER TEXT] Title node not found');
               }
@@ -5269,6 +5271,91 @@ console.log(`[PROFILE] msg.isGroupChat = ${msg.isGroupChat}`);
     return;
   }
 
+  // ============================================================================
+  // ADJUST-LENGTH HANDLER
+  // Adjusts conversation length by showing/hiding Chat Blocks based on target height
+  // Works independently of topic selection - operates on existing conversation
+  // ============================================================================
+  if (msg.type === 'adjust-length') {
+    const selection = figma.currentPage.selection;
+
+    if (selection.length === 0) {
+      figma.ui.postMessage({
+        type: 'error',
+        message: 'Please select a Chat Thread component first'
+      });
+      return;
+    }
+
+    const threadNode = selection[0];
+    const targetHeight = msg.targetHeight || 2200;
+
+    console.log(`[ADJUST-LENGTH] Target height: ${targetHeight}px`);
+
+    // Find the Chat thread window that contains the chat blocks
+    const chatWindow = findChatThreadWindow(threadNode);
+    if (!chatWindow) {
+      console.log('[ADJUST-LENGTH] Could not find Chat thread window');
+      figma.ui.postMessage({
+        type: 'error',
+        message: 'Could not find Chat thread window in selection'
+      });
+      return;
+    }
+
+    // Find all Chat block components
+    const chatBlocks = findChatBlockComponents(threadNode);
+    if (chatBlocks.length === 0) {
+      console.log('[ADJUST-LENGTH] No Chat blocks found');
+      figma.ui.postMessage({
+        type: 'error',
+        message: 'No Chat blocks found in selection'
+      });
+      return;
+    }
+
+    // Sort chat blocks by vertical position (top to bottom)
+    chatBlocks.sort((a, b) => {
+      const aY = a.absoluteTransform[1][2];
+      const bY = b.absoluteTransform[1][2];
+      return aY - bY;
+    });
+
+    console.log(`[ADJUST-LENGTH] Found ${chatBlocks.length} Chat blocks`);
+
+    // Get the starting Y position (top of first block)
+    const startY = chatBlocks[0].absoluteTransform[1][2];
+    let visibleCount = 0;
+    let hiddenCount = 0;
+
+    // Show/hide blocks based on cumulative height
+    for (const block of chatBlocks) {
+      const blockY = block.absoluteTransform[1][2];
+      const blockBottom = blockY + block.height;
+      const relativeBottom = blockBottom - startY;
+
+      // Check if this block fits within the target height
+      if (relativeBottom <= targetHeight) {
+        // Show this block
+        block.visible = true;
+        visibleCount++;
+      } else {
+        // Hide this block
+        block.visible = false;
+        hiddenCount++;
+      }
+    }
+
+    console.log(`[ADJUST-LENGTH] Visible: ${visibleCount}, Hidden: ${hiddenCount}`);
+
+    figma.ui.postMessage({
+      type: 'success',
+      message: `Adjusted length: ${visibleCount} message${visibleCount !== 1 ? 's' : ''} visible`
+    });
+
+    return;
+  }
+
   if (msg.type === 'populate-conversation') {
     const selection = figma.currentPage.selection;
 
@@ -5281,8 +5368,6 @@ console.log(`[PROFILE] msg.isGroupChat = ${msg.isGroupChat}`);
     }
 
     const messages = msg.messages;
-    const maxMessages = msg.maxMessages; // Get the max messages from UI length setting
-    const targetHeight = msg.targetHeight; // Get the target height directly from UI
 
     if (!messages || messages.length === 0) {
       figma.ui.postMessage({
@@ -5304,10 +5389,6 @@ console.log(`[PROFILE] msg.isGroupChat = ${msg.isGroupChat}`);
         return;
       }
 
-      // Find all Chat Blocks to manage visibility
-      const chatBlocks = findChatBlocks(selection[0]);
-      console.log(`[POPULATE] Found ${chatBlocks.length} Chat Blocks, maxMessages: ${maxMessages}`);
-
       let populated = 0;
 
       for (let i = 0; i < Math.min(result.structure.length, messages.length); i++) {
@@ -5318,65 +5399,6 @@ console.log(`[PROFILE] msg.isGroupChat = ${msg.isGroupChat}`);
           const success = await setTextNodeContent(textNode, messageText);
           if (success) populated++;
         }
-      }
-
-      // Hide Chat Blocks beyond target height to shorten the thread
-      // Using height-based approach for accurate pixel targets
-      if (chatBlocks.length > 0 && targetHeight) {
-        console.log(`[POPULATE] Target height: ${targetHeight}px`);
-
-        // First, make all blocks visible to get accurate measurements
-        for (const block of chatBlocks) {
-          block.visible = true;
-        }
-
-        // Calculate cumulative height and hide blocks that exceed target
-        let cumulativeHeight = 0;
-        let visibleCount = 0;
-
-        // Get the parent to account for spacing/padding
-        const threadNode = selection[0];
-        const threadBounds = threadNode.absoluteBoundingBox;
-
-        // Find header height (content above first chat block)
-        let headerHeight = 0;
-        if (chatBlocks.length > 0 && threadBounds) {
-          const firstBlockBounds = chatBlocks[0].absoluteBoundingBox;
-          if (firstBlockBounds) {
-            headerHeight = firstBlockBounds.y - threadBounds.y;
-          }
-        }
-
-        console.log(`[POPULATE] Header height: ${headerHeight}px`);
-        cumulativeHeight = headerHeight;
-
-        for (let i = 0; i < chatBlocks.length; i++) {
-          const block = chatBlocks[i];
-          const blockBounds = block.absoluteBoundingBox;
-
-          if (!blockBounds) {
-            block.visible = true;
-            visibleCount++;
-            continue;
-          }
-
-          const blockHeight = blockBounds.height;
-
-          // Add spacing between blocks (approximate auto-layout gap)
-          const spacing = i > 0 ? 8 : 0; // Typical spacing between chat blocks
-
-          if (cumulativeHeight + blockHeight + spacing <= targetHeight) {
-            block.visible = true;
-            cumulativeHeight += blockHeight + spacing;
-            visibleCount++;
-            console.log(`[POPULATE] Block ${i}: ${blockHeight}px, cumulative: ${cumulativeHeight}px - VISIBLE`);
-          } else {
-            block.visible = false;
-            console.log(`[POPULATE] Block ${i}: ${blockHeight}px, would exceed ${targetHeight}px - HIDDEN`);
-          }
-        }
-
-        console.log(`[POPULATE] Final: ${visibleCount} visible blocks, target ${targetHeight}px, actual ~${cumulativeHeight}px`);
       }
 
       figma.ui.postMessage({

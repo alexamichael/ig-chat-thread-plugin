@@ -5281,6 +5281,8 @@ console.log(`[PROFILE] msg.isGroupChat = ${msg.isGroupChat}`);
     }
 
     const messages = msg.messages;
+    const maxMessages = msg.maxMessages; // Get the max messages from UI length setting
+    const targetHeight = msg.targetHeight; // Get the target height directly from UI
 
     if (!messages || messages.length === 0) {
       figma.ui.postMessage({
@@ -5302,6 +5304,10 @@ console.log(`[PROFILE] msg.isGroupChat = ${msg.isGroupChat}`);
         return;
       }
 
+      // Find all Chat Blocks to manage visibility
+      const chatBlocks = findChatBlocks(selection[0]);
+      console.log(`[POPULATE] Found ${chatBlocks.length} Chat Blocks, maxMessages: ${maxMessages}`);
+
       let populated = 0;
 
       for (let i = 0; i < Math.min(result.structure.length, messages.length); i++) {
@@ -5312,6 +5318,65 @@ console.log(`[PROFILE] msg.isGroupChat = ${msg.isGroupChat}`);
           const success = await setTextNodeContent(textNode, messageText);
           if (success) populated++;
         }
+      }
+
+      // Hide Chat Blocks beyond target height to shorten the thread
+      // Using height-based approach for accurate pixel targets
+      if (chatBlocks.length > 0 && targetHeight) {
+        console.log(`[POPULATE] Target height: ${targetHeight}px`);
+
+        // First, make all blocks visible to get accurate measurements
+        for (const block of chatBlocks) {
+          block.visible = true;
+        }
+
+        // Calculate cumulative height and hide blocks that exceed target
+        let cumulativeHeight = 0;
+        let visibleCount = 0;
+
+        // Get the parent to account for spacing/padding
+        const threadNode = selection[0];
+        const threadBounds = threadNode.absoluteBoundingBox;
+
+        // Find header height (content above first chat block)
+        let headerHeight = 0;
+        if (chatBlocks.length > 0 && threadBounds) {
+          const firstBlockBounds = chatBlocks[0].absoluteBoundingBox;
+          if (firstBlockBounds) {
+            headerHeight = firstBlockBounds.y - threadBounds.y;
+          }
+        }
+
+        console.log(`[POPULATE] Header height: ${headerHeight}px`);
+        cumulativeHeight = headerHeight;
+
+        for (let i = 0; i < chatBlocks.length; i++) {
+          const block = chatBlocks[i];
+          const blockBounds = block.absoluteBoundingBox;
+
+          if (!blockBounds) {
+            block.visible = true;
+            visibleCount++;
+            continue;
+          }
+
+          const blockHeight = blockBounds.height;
+
+          // Add spacing between blocks (approximate auto-layout gap)
+          const spacing = i > 0 ? 8 : 0; // Typical spacing between chat blocks
+
+          if (cumulativeHeight + blockHeight + spacing <= targetHeight) {
+            block.visible = true;
+            cumulativeHeight += blockHeight + spacing;
+            visibleCount++;
+            console.log(`[POPULATE] Block ${i}: ${blockHeight}px, cumulative: ${cumulativeHeight}px - VISIBLE`);
+          } else {
+            block.visible = false;
+            console.log(`[POPULATE] Block ${i}: ${blockHeight}px, would exceed ${targetHeight}px - HIDDEN`);
+          }
+        }
+
+        console.log(`[POPULATE] Final: ${visibleCount} visible blocks, target ${targetHeight}px, actual ~${cumulativeHeight}px`);
       }
 
       figma.ui.postMessage({

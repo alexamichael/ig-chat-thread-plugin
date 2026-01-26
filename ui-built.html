@@ -158,6 +158,78 @@
       min-width: auto;
     }
 
+    /* Slider styles for conversation length */
+    .slider-container {
+      width: 100%;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+    }
+
+    .slider-track-wrapper {
+      flex: 1;
+      position: relative;
+    }
+
+    .slider-input {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      background: #e0e0e0;
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .slider-input::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      background: #4A5DF9;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid white;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .slider-input::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      background: #4A5DF9;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid white;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .slider-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 6px;
+    }
+
+    .slider-label {
+      font-size: 11px;
+      color: #666;
+      font-weight: 500;
+    }
+
+    .slider-label:first-child {
+      text-align: left;
+    }
+
+    .slider-label:nth-child(2) {
+      text-align: center;
+    }
+
+    .slider-label:last-child {
+      text-align: right;
+    }
+
     button {
       flex: 1;
       background: #4A5DF9;
@@ -625,6 +697,23 @@
       </div>
     </div>
 
+    <!-- Conversation Length -->
+    <div class="section">
+      <span class="section-label">Conversation length</span>
+      <div class="slider-container">
+        <div class="slider-row">
+          <div class="slider-track-wrapper">
+            <input type="range" id="length-slider" class="slider-input" min="0" max="100" step="50" value="100">
+            <div class="slider-labels">
+              <span class="slider-label">Short</span>
+              <span class="slider-label">Medium</span>
+              <span class="slider-label">Long</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="divider"></div>
 
     <!-- Chat Flair Section -->
@@ -751,6 +840,98 @@
       }, '*');
     });
 
+    // Get length slider reference
+    const lengthSlider = document.getElementById('length-slider');
+
+    /**
+     * Get the target height based on length slider setting
+     * Short (0) = 917px
+     * Medium (50) = 1064px  
+     * Long (100) = unlimited (full thread)
+     */
+    function getTargetHeight() {
+      const sliderValue = parseInt(lengthSlider.value);
+      
+      if (sliderValue === 0) {
+        return 917;
+      } else if (sliderValue === 50) {
+        return 1064;
+      } else {
+        return null; // Long - no limit
+      }
+    }
+
+    /**
+     * Get the max number of messages based on length slider setting
+     * This is now just used to limit what we send to LLM
+     * Long (100) = full length (~2127px, all messages)
+     * Medium (50) = ~1/2 length (~1064px)
+     * Short (0) = max 656px height
+     *
+     * We estimate ~80px average per message bubble
+     * Short: 656px / 80 ≈ 8 messages
+     * Medium: 1064px / 80 ≈ 13 messages
+     * Long: full structure (no limit)
+     */
+    function getMaxMessagesForLength(structureLength) {
+      const sliderValue = parseInt(lengthSlider.value);
+
+      if (sliderValue === 100) {
+        // Long - use full structure
+        return structureLength;
+      } else if (sliderValue === 50) {
+        // Medium - approximately half
+        return Math.min(Math.ceil(structureLength / 2), 13);
+      } else {
+        // Short - max ~8 messages for 656px
+        return Math.min(8, structureLength);
+      }
+    }
+
+    /**
+     * Limit the structure array based on length setting
+     */
+    function getLimitedStructure(structure) {
+      const maxMessages = getMaxMessagesForLength(structure.length);
+      return structure.slice(0, maxMessages);
+    }
+
+      // Length slider change handler - regenerate conversation when length changes
+    lengthSlider.addEventListener('change', async () => {
+      // Only regenerate if we have a topic and structure
+      const customTopic = customTopicInput.value.trim();
+      const topicToUse = customTopic || selectedTopic;
+
+      if (!topicToUse || !currentStructure || currentStructure.length === 0) {
+        return; // No topic selected or no structure available
+      }
+
+      generateBtn.disabled = true;
+      showStatus('Regenerating conversation for new length...', 'info');
+
+      try {
+        const isCustom = !!customTopic;
+        const limitedStructure = getLimitedStructure(currentStructure);
+        const maxMessages = getMaxMessagesForLength(currentStructure.length);
+        const messages = await generateConversationWithLlama(topicToUse, limitedStructure, isCustom);
+
+        if (messages && messages.length > 0) {
+          parent.postMessage({
+            pluginMessage: {
+              type: 'populate-conversation',
+              messages: messages,
+              maxMessages: maxMessages,
+              targetHeight: getTargetHeight()
+            }
+          }, '*');
+        }
+      } catch (error) {
+        showStatus('Error: ' + error.message, 'error');
+      } finally {
+        generateBtn.disabled = false;
+      }
+    });
+
     // Topic prompts for Llama - 2 person version
     const topicPrompts2Person = {
       sports: "two friends who are passionate sports fans discussing recent games, players, and upcoming matches. They use casual sports terminology and share excitement about their team.",
@@ -804,12 +985,16 @@
         showStatus('Generating conversation...', 'info');
 
         try {
-          const messages = await generateConversationWithLlama(selectedTopic, currentStructure, false);
+          const limitedStructure = getLimitedStructure(currentStructure);
+          const maxMessages = getMaxMessagesForLength(currentStructure.length);
+          const messages = await generateConversationWithLlama(selectedTopic, limitedStructure, false);
 
           parent.postMessage({
             pluginMessage: {
               type: 'populate-conversation',
-              messages: messages
+              messages: messages,
+              maxMessages: maxMessages,
+              targetHeight: getTargetHeight()
             }
           }, '*');
         } catch (error) {
@@ -1098,12 +1283,16 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
       try {
         const topicToUse = customTopic || selectedTopic;
         const isCustom = !!customTopic;
-        const messages = await generateConversationWithLlama(topicToUse, currentStructure, isCustom);
+        const limitedStructure = getLimitedStructure(currentStructure);
+        const maxMessages = getMaxMessagesForLength(currentStructure.length);
+        const messages = await generateConversationWithLlama(topicToUse, limitedStructure, isCustom);
 
         parent.postMessage({
           pluginMessage: {
             type: 'populate-conversation',
-            messages: messages
+            messages: messages,
+            maxMessages: maxMessages,
+            targetHeight: getTargetHeight()
           }
         }, '*');
       } catch (error) {

@@ -366,50 +366,70 @@
       margin-top: 4px;
     }
 
-    /* Chat Type Radio Buttons */
+/* Chat Type Toggle Switch */
     .chat-type-row {
       display: flex;
-      gap: 16px;
+      align-items: center;
+      gap: 12px;
     }
 
-    .radio-label {
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    .toggle-label {
+      font-size: 14px;
+      color: #000000;
+      font-weight: 400;
+    }
+
+    .toggle-label.active {
+      font-weight: 600;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 48px;
+      height: 28px;
       cursor: pointer;
-      font-size: 12px;
-      color: #333;
     }
 
-    .radio-label input[type="radio"] {
-      display: none;
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
     }
 
-    .radio-custom {
-      width: 16px;
-      height: 16px;
-      border: 2px solid #ccc;
+    .toggle-slider {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #E5E5EA;
+      border-radius: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      bottom: 3px;
+      background-color: #FFFFFF;
       border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.15s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      transition: all 0.2s ease;
     }
 
-    .radio-label input[type="radio"]:checked + .radio-custom {
-      border-color: #4A5DF9;
+    .toggle-switch input:checked + .toggle-slider {
+      background-color: #4A5DF9;
     }
 
-    .radio-label input[type="radio"]:checked + .radio-custom::after {
-      content: '';
-      width: 8px;
-      height: 8px;
-      background: #4A5DF9;
-      border-radius: 50%;
+    .toggle-switch input:checked + .toggle-slider:before {
+      transform: translateX(20px);
     }
 
-    .radio-text {
-      font-weight: 500;
+    .toggle-switch:hover .toggle-slider:before {
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
     }
 
     /* Group Size Dropdown */
@@ -643,26 +663,23 @@
     </div>
 
     <!-- Chat Type Selection -->
-    <div class="section">
-      <span class="section-label">Chat type</span>
+    <div class="section" id="chat-type-section">
       <div class="chat-type-row">
-        <label class="radio-label">
-          <input type="radio" name="chat-type" value="1:1" checked>
-          <span class="radio-custom"></span>
-          <span class="radio-text">1:1 Chat</span>
+        <span class="toggle-label" id="label-1on1">1:1 chat</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="chat-type-toggle">
+          <span class="toggle-slider"></span>
         </label>
-        <label class="radio-label">
-          <input type="radio" name="chat-type" value="group">
-          <span class="radio-custom"></span>
-          <span class="radio-text">Group Chat</span>
-        </label>
+        <span class="toggle-label" id="label-group">Group chat (3)</span>
       </div>
+      <!-- Hidden for now - may add to the right of Group label later
       <div id="group-size-container" class="group-size-container" style="display: none;">
         <label class="dropdown-label">Number of people</label>
         <select id="group-size-select" class="group-size-select">
           <option value="3" selected>3 people</option>
         </select>
       </div>
+      -->
     </div>
 
     <div class="divider"></div>
@@ -694,23 +711,6 @@
           rows="1"
         ></textarea>
         <button id="generate-btn" class="generate-btn" disabled>Generate</button>
-      </div>
-    </div>
-
-    <!-- Conversation Length -->
-    <div class="section">
-      <span class="section-label">Conversation length</span>
-      <div class="slider-container">
-        <div class="slider-row">
-          <div class="slider-track-wrapper">
-            <input type="range" id="length-slider" class="slider-input" min="0" max="100" step="50" value="100">
-            <div class="slider-labels">
-              <span class="slider-label">Short</span>
-              <span class="slider-label">Medium</span>
-              <span class="slider-label">Long</span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -792,65 +792,71 @@
     let participants = 2;
     let userSelectedChatType = null;
 
-    // DOM elements
+// DOM elements
     const topicSelect = document.getElementById('topic-select');
     const generateBtn = document.getElementById('generate-btn');
     const statusBar = document.getElementById('status-bar');
     const customTopicInput = document.getElementById('custom-topic-input');
-    const chatTypeRadios = document.querySelectorAll('input[name="chat-type"]');
+    const chatTypeToggle = document.getElementById('chat-type-toggle');
+    const label1on1 = document.getElementById('label-1on1');
+    const labelGroup = document.getElementById('label-group');
     const groupSizeContainer = document.getElementById('group-size-container');
     const groupSizeSelect = document.getElementById('group-size-select');
 
-    // Chat type radio button handlers
-    chatTypeRadios.forEach(radio => {
-      radio.addEventListener('change', (e) => {
-        const selectedValue = e.target.value;
-        userSelectedChatType = selectedValue;
+    // Chat type toggle switch handler
+    chatTypeToggle.addEventListener('change', (e) => {
+      const isGroup = e.target.checked;
+      userSelectedChatType = isGroup ? 'group' : '1on1';
 
-        if (selectedValue === 'group') {
-          groupSizeContainer.style.display = 'block';
-          isGroupChat = true;
-          participants = parseInt(groupSizeSelect.value);
-        } else {
-          groupSizeContainer.style.display = 'none';
-          isGroupChat = false;
-          participants = 2;
-        }
+      // Update label styling
+      if (isGroup) {
+        labelGroup.classList.add('active');
+        label1on1.classList.remove('active');
+        if (groupSizeContainer) groupSizeContainer.style.display = 'block';
+        isGroupChat = true;
+        participants = groupSizeSelect ? parseInt(groupSizeSelect.value) : 3;
+      } else {
+        label1on1.classList.add('active');
+        labelGroup.classList.remove('active');
+        if (groupSizeContainer) groupSizeContainer.style.display = 'none';
+        isGroupChat = false;
+        participants = 2;
+      }
 
-        // Capture current gradient state BEFORE making changes
-        const gradientStateBefore = gradientSelect.value;
+      // Capture current gradient state BEFORE making changes
+      const gradientSelectEl = document.getElementById('gradient-select');
+      const gradientStateBefore = gradientSelectEl ? gradientSelectEl.value : 'solid';
 
-        // Send message to plugin to toggle the component property
-        parent.postMessage({
-          pluginMessage: {
-            type: 'toggle-chat-type',
-            isGroupChat: isGroupChat,
-            participants: participants
-          }
-        }, '*');
-
-        // Restore gradient state after a delay to ensure toggle completes
-        setTimeout(() => {
-          if (gradientStateBefore === 'gradient') {
-            parent.postMessage({ pluginMessage: { type: 'apply-gradient' } }, '*');
-          } else {
-            parent.postMessage({ pluginMessage: { type: 'remove-gradient' } }, '*');
-          }
-        }, 500);
-      });
-    });
-
-    // Group size dropdown handler
-    groupSizeSelect.addEventListener('change', (e) => {
-      participants = parseInt(e.target.value);
-
+      // Send message to plugin to toggle the component property
       parent.postMessage({
         pluginMessage: {
-          type: 'update-participants',
+          type: 'toggle-chat-type',
+          isGroupChat: isGroupChat,
           participants: participants
         }
       }, '*');
+
+      // Restore gradient state after a delay to ensure toggle completes
+      setTimeout(() => {
+        if (gradientStateBefore === 'gradient') {
+          parent.postMessage({ pluginMessage: { type: 'apply-gradient' } }, '*');
+        } else {
+          parent.postMessage({ pluginMessage: { type: 'remove-gradient' } }, '*');
+        }
+      }, 500);
     });
+    // Group size select handler (if element exists)
+    if (groupSizeSelect) {
+      groupSizeSelect.addEventListener('change', (e) => {
+        participants = parseInt(e.target.value);
+        console.log('Group size changed to:', participants);
+
+        // Request structure analysis when group size changes
+        setTimeout(() => {
+          requestStructureAnalysis();
+        }, 100);
+      });
+    }
 
     // Get length slider reference
     const lengthSlider = document.getElementById('length-slider');
@@ -1343,15 +1349,16 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
         updateGenerateButton();
 
         if (userSelectedChatType === null) {
-          const oneToOneRadio = document.querySelector('input[name="chat-type"][value="1:1"]');
-          const groupRadio = document.querySelector('input[name="chat-type"][value="group"]');
-
           if (isGroupChat) {
-            groupRadio.checked = true;
+            chatTypeToggle.checked = true;
+            labelGroup.classList.add('active');
+            label1on1.classList.remove('active');
             groupSizeContainer.style.display = 'block';
             groupSizeSelect.value = String(participants);
           } else {
-            oneToOneRadio.checked = true;
+            chatTypeToggle.checked = false;
+            label1on1.classList.add('active');
+            labelGroup.classList.remove('active');
             groupSizeContainer.style.display = 'none';
           }
         }

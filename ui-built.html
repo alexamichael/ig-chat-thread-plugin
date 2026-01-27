@@ -215,6 +215,21 @@
       position: relative;
     }
 
+    .slider-notches {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .slider-notch {
+      width: 5px;
+      height: 5px;
+      background: #8E8E93;
+      border-radius: 50%;
+    }
+
     .slider-input {
       -webkit-appearance: none;
       appearance: none;
@@ -266,7 +281,7 @@
     .slider-labels {
       display: flex;
       justify-content: space-between;
-      margin-top: 6px;
+      margin-top: 10px;
     }
 
     .slider-label {
@@ -791,6 +806,9 @@
       <div class="slider-container">
         <div class="slider-row">
           <div class="slider-track-wrapper">
+            <div class="slider-notches">
+              <span class="slider-notch"></span>
+            </div>
             <input type="range" id="length-slider" class="slider-input" min="0" max="100" step="50" value="100">
             <div class="slider-labels">
               <span class="slider-label">Short</span>
@@ -811,6 +829,10 @@
         <span class="subsection-label">😊 Emojis</span>
         <div class="slider-row">
           <div class="slider-track-wrapper">
+            <div class="slider-notches">
+              <span class="slider-notch"></span>
+              <span class="slider-notch"></span>
+            </div>
             <input type="range" id="reactions-slider" class="slider-input" min="0" max="100" step="50" value="0">
             <div class="slider-labels">
               <span class="slider-label">None</span>
@@ -824,6 +846,10 @@
         <span class="subsection-label">🎉 Stickers</span>
         <div class="slider-row">
           <div class="slider-track-wrapper">
+            <div class="slider-notches">
+              <span class="slider-notch"></span>
+              <span class="slider-notch"></span>
+            </div>
             <input type="range" id="stickers-slider" class="slider-input" min="0" max="100" step="50" value="0">
             <div class="slider-labels">
               <span class="slider-label">None</span>

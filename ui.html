@@ -202,7 +202,32 @@
 
     /* Slider styles for conversation length */
     .slider-container {
-      width: 100%;
+      margin-top: 8px;
+    }
+
+    .slider-inline-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .slider-emoji {
+      font-size: 32px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .slider-icon {
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+    }
+
+    .slider-label-text {
+      font-size: 13px;
+      font-weight: 500;
+      color: #262626;
+      flex-shrink: 0;
     }
 
     .slider-row {
@@ -213,69 +238,105 @@
     .slider-track-wrapper {
       flex: 1;
       position: relative;
+      height: 28px;
+      display: flex;
+      align-items: center;
     }
 
-    .slider-notches {
+    .slider-track {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 4px;
+      background: #E5E5EA;
+      border-radius: 100px;
+      pointer-events: none;
+    }
+
+    .slider-progress {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 4px;
+      background: #000000;
+      border-radius: 100px;
+      pointer-events: none;
+      width: var(--slider-progress, 0%);
+      z-index: 2;
+    }
+
+    .slider-notch {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      pointer-events: none;
-    }
-
-    .slider-notch {
-      width: 5px;
-      height: 5px;
+      width: 6px;
+      height: 6px;
       background: #8E8E93;
       border-radius: 50%;
+      pointer-events: none;
+      z-index: 1;
     }
 
     .slider-input {
       -webkit-appearance: none;
       appearance: none;
       width: 100%;
-      height: 4px;
-      background: #E5E5EA;
-      border-radius: 2px;
+      height: 28px;
+      background: transparent;
       outline: none;
       cursor: pointer;
+      position: relative;
+      z-index: 3;
+      margin: 0;
+    }
+
+    .slider-input::-webkit-slider-runnable-track {
+      height: 4px;
+      background: transparent;
+    }
+
+    .slider-input::-moz-range-track {
+      height: 4px;
+      background: transparent;
     }
 
     .slider-input::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 24px;
-      height: 24px;
+      width: 28px;
+      height: 28px;
       background: #FFFFFF;
       border-radius: 50%;
       cursor: pointer;
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-      transition: all 0.15s ease;
+      border: none;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+      margin-top: -12px;
     }
 
     .slider-input::-webkit-slider-thumb:hover {
-      transform: scale(1.05);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     .slider-input::-webkit-slider-thumb:active {
-      background: #4A5DF9;
-      border-color: #4A5DF9;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.08);
     }
 
     .slider-input::-moz-range-thumb {
-      width: 24px;
-      height: 24px;
+      width: 28px;
+      height: 28px;
       background: #FFFFFF;
       border-radius: 50%;
       cursor: pointer;
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      border: none;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
     }
 
     .slider-input::-moz-range-thumb:active {
-      background: #4A5DF9;
-      border-color: #4A5DF9;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.08);
     }
 
     .slider-labels {
@@ -539,97 +600,6 @@
       background-color: rgba(74, 93, 249, 0.05);
     }
 
-    /* Chat Flair Slider Styles */
-    .slider-container {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .slider-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .slider-track-wrapper {
-      flex: 1;
-      position: relative;
-    }
-
-    .slider-input {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 100%;
-      height: 4px;
-      background: linear-gradient(to right, #000000 0%, #000000 var(--slider-progress, 0%), #E5E5EA var(--slider-progress, 0%), #E5E5EA 100%);
-      border-radius: 2px;
-      outline: none;
-      cursor: pointer;
-    }
-
-    .slider-input::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 24px;
-      height: 24px;
-      background: #FFFFFF;
-      border-radius: 50%;
-      cursor: pointer;
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-      transition: all 0.15s ease;
-    }
-
-    .slider-input::-webkit-slider-thumb:hover {
-      transform: scale(1.05);
-    }
-
-    .slider-input::-webkit-slider-thumb:active {
-      background: #4A5DF9;
-      border-color: #4A5DF9;
-    }
-
-    .slider-input::-moz-range-thumb {
-      width: 24px;
-      height: 24px;
-      background: #FFFFFF;
-      border-radius: 50%;
-      cursor: pointer;
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-    }
-
-    .slider-input::-moz-range-thumb:active {
-      background: #4A5DF9;
-      border-color: #4A5DF9;
-    }
-
-    .slider-labels {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 10px;
-    }
-
-    .slider-label {
-      font-size: 10px;
-      color: #888;
-      text-align: center;
-      width: 40px;
-    }
-
-    .slider-label:first-child {
-      text-align: left;
-    }
-
-    .slider-label:last-child {
-      text-align: right;
-    }
-
-    .slider-value {
-      display: none;
-    }
-
     .subsection-label {
       font-size: 11px;
       color: #888;
@@ -802,39 +772,45 @@
 
     <div class="divider"></div>
 
-    <!-- Chat Flair Section -->
-    <div class="section">
-      <span class="section-label">Chat flair</span>
-      <div class="slider-container">
-        <span class="subsection-label">😊 Emojis</span>
-        <div class="slider-row">
-          <div class="slider-track-wrapper">
-            <div class="slider-notches">
-              <span class="slider-notch"></span>
-            </div>
-            <input type="range" id="reactions-slider" class="slider-input" min="0" max="100" step="50" value="0">
-            <div class="slider-labels">
-              <span class="slider-label">None</span>
-              <span class="slider-label">Some</span>
-              <span class="slider-label">Lots</span>
+      <!-- Length -->
+      <div class="section">
+        <div class="slider-container">
+          <div class="slider-inline-row">
+            <span class="slider-label-text">Length</span>
+            <div class="slider-track-wrapper">
+              <div class="slider-track"></div>
+              <div class="slider-progress" id="length-progress"></div>
+              <div class="slider-notch"></div>
+              <input type="range" id="length-slider" class="slider-input" min="0" max="100" step="50" value="100">
             </div>
           </div>
         </div>
       </div>
-      <div class="slider-container" style="margin-top: 12px;">
-        <span class="subsection-label">🎉 Stickers</span>
-        <div class="slider-row">
+
+    <div class="divider"></div>
+
+    <!-- Chat Flair Section -->
+    <div class="section">
+      <span class="section-label">Chat flair</span>
+      <div class="slider-container">
+        <div class="slider-inline-row">
+          <span class="slider-emoji">😊</span>
           <div class="slider-track-wrapper">
-            <div class="slider-notches">
-              <span class="slider-notch"></span>
-              <span class="slider-notch"></span>
-            </div>
+            <div class="slider-track"></div>
+            <div class="slider-progress" id="reactions-progress"></div>
+            <div class="slider-notch"></div>
+            <input type="range" id="reactions-slider" class="slider-input" min="0" max="100" step="50" value="0">
+          </div>
+        </div>
+      </div>
+      <div class="slider-container" style="margin-top: 16px;">
+        <div class="slider-inline-row">
+          <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAVCAYAAABG1c6oAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAQASURBVHgB5ZR7TFNnGMafc2tpaaGF3ijgpSpBGDIlXNxkAV1cAJep2wJuGuY0mLlsy+YuJmPZGJsuOBZRdMkk0aiJm5tm04GhuqEzMNzkEjIiCCq3Ai2UtgIF2nPZOViIURMT/vVJvnzn5LzfL+f93ud9gSdaZGAPMhqNwY8Ljl+QbDKbzboHzs6KXjo/KaLyG/vQ9e8Fof6QIPwr7nsKrGdmvouLkh4+fePnY40/cELtgek4/u9yn5CfVfR6IAaERDcYohdeKenp6LBxkCv8BLgg+P2AIHDcPCNFPbdLE+bxeFzXDnuEYU8wp1AS1ISXhEwG+HxAqIJjf6w78nH56bfKJCAu7rP5Jn0mRqni8V3JJaxMXYGUlQYQYiJeLwuDlofd3T+hDomWWS+0USNOL8wRergGGegW25CckIJIPbBsGyEdAaNVmRmVCnC5xrE8rx1Ha3ag/ooLp443wsfdRfOdm9CqFyhOHBig/BMM5GPxYMUUVOGT6G0xYtjtgNMNLI9bE0ebTIs1PsGLfaVWmJ9pQMa6WHCaJvyn24iplt0IUS+DjKYxOi4gawuNKG0M/IQLbd0jWKhfhHCNDq13HNPZKJlQIzk42DkSqlAiPS0NzrpnUVj0PjyjThTk70bOi6lwOB1QyELE+wSiNCa8WhKJazeuwqwNQ01rFXKKNbCYDGDEknT1tnRIKXOd/Q53wtNGrN+wGqPcJDZH38C2V0pxoboWcqUwDWNoAh8dzUJyTA7q2s6h8FQebM52XPrcjZExFrToAdtIZ59UarKisnj7O+vLTvspO5lNtuDl7WHIGDiPrp5hhDA6kCQrAmkUb6kSq0qApu95SSnncaymAhlPvcmfr//1hOQaYsaIdeVuv+uumg5SAva+UbxUBDRc7sPwXxbsr8mDn53A17lWjHmBoalO/NlyBFsz92KKJRFtuFfhGR9OOz0lfl3CwZ3nGh1ukLXtJ3G2/iv8VvsHYnRhcNwi4RPtI49wQxFEw7pHC71+Et1DNkRoY/nqhpMflP6Uf1Dk8MR93ULt3VFZkZiUvRnWs3Rc1e+4itvYqWvFplU5MCYuQU/TbUwN2pGZVIh5+hg4PL2sjJnq2/Rl6iIJdv8fzvZz89Jd9sRgle6X9ias9VoQwkl1Y8U1jpvEAAoyTfgipwLdw11sbJSaSntbTwY4wqOARCWz4fgLrOU1SmBJP0Hhk+CLMG39FpGWVWCUSmhdgmh2gZXJ+yfXfhitDgwGfhaAh0WtZuYnsrqg9Ga9d/9n6Yf5WHM2KTWVIPonXC3w12/VXH637Pk1D8IeJyk4+ExxU+c/h3iuuoTlasvdvvSk3BUITJ65aHoaWfSWJRsz3ssNvM8ZNif9D2S6jwE/063aAAAAAElFTkSuQmCC" alt="Stickers" class="slider-icon">
+          <div class="slider-track-wrapper">
+            <div class="slider-track"></div>
+            <div class="slider-progress" id="stickers-progress"></div>
+            <div class="slider-notch"></div>
             <input type="range" id="stickers-slider" class="slider-input" min="0" max="100" step="50" value="0">
-            <div class="slider-labels">
-              <span class="slider-label">None</span>
-              <span class="slider-label">Some</span>
-              <span class="slider-label">Lots</span>
-            </div>
           </div>
         </div>
       </div>
@@ -953,6 +929,17 @@
 
     // Get length slider reference
     const lengthSlider = document.getElementById('length-slider');
+    const lengthProgress = document.getElementById('length-progress');
+
+    // Update length slider visual
+    function updateLengthSliderVisual() {
+      const value = parseInt(lengthSlider.value);
+      const progress = (value / 100) * 100;
+      lengthProgress.style.width = `${progress}%`;
+    }
+
+    lengthSlider.addEventListener('input', updateLengthSliderVisual);
+    updateLengthSliderVisual(); // Initialize on load
 
     /**
      * Get the target height based on length slider setting
@@ -1488,15 +1475,17 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
 
     // Reactions slider handler
     const reactionsSlider = document.getElementById('reactions-slider');
+    const reactionsProgress = document.getElementById('reactions-progress');
     const reactionsValue = document.getElementById('reactions-value');
 
     function updateSliderVisual() {
       const value = parseInt(reactionsSlider.value);
       const progress = (value / 100) * 100;
-      reactionsSlider.style.setProperty('--slider-progress', `${progress}%`);
+      reactionsProgress.style.width = `${progress}%`;
     }
 
     reactionsSlider.addEventListener('input', updateSliderVisual);
+    updateSliderVisual(); // Initialize on load
 
     reactionsSlider.addEventListener('change', () => {
       const value = parseInt(reactionsSlider.value);
@@ -1525,15 +1514,17 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
 
     // Stickers slider handler
     const stickersSlider = document.getElementById('stickers-slider');
+    const stickersProgress = document.getElementById('stickers-progress');
     const stickersValue = document.getElementById('stickers-value');
 
     function updateStickersSliderVisual() {
       const value = parseInt(stickersSlider.value);
       const progress = (value / 100) * 100;
-      stickersSlider.style.setProperty('--slider-progress', `${progress}%`);
+      stickersProgress.style.width = `${progress}%`;
     }
 
     stickersSlider.addEventListener('input', updateStickersSliderVisual);
+    updateStickersSliderVisual(); // Initialize on load
 
     stickersSlider.addEventListener('change', () => {
       const value = parseInt(stickersSlider.value);

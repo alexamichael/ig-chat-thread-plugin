@@ -576,8 +576,7 @@
       margin-bottom: 4px;
     }
 
-    .group-size-select,
-    .gradient-select {
+    .group-size-select {
       width: 100%;
       padding: 10px 12px;
       border: 2px solid #e0e0e0;
@@ -594,10 +593,35 @@
       background-position: right 12px center;
     }
 
-    .group-size-select:focus,
-    .gradient-select:focus {
+    .group-size-select:focus {
       outline: none;
       border-color: #4A5DF9;
+    }
+
+    .gradient-select {
+      width: 240px;
+      padding: 14px 40px 14px 16px;
+      border: 1.5px solid #E5E5EA;
+      border-radius: 12px;
+      font-size: 14px;
+      letter-spacing: -0.15px;
+      font-family: 'SF Pro Text', sans-serif;
+      color: #000000;
+      background: #FFFFFF;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23666666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      margin-left: 12px;
+    }
+
+    .gradient-select:focus {
+      outline: none;
+      border-color: #000000;
+      border-width: 2px;
+      background-color: #FFFFFF;
     }
 
     .subsection-label {
@@ -699,12 +723,13 @@
     <!-- Chat Type Selection -->
     <div class="section" id="chat-type-section">
       <div class="chat-type-row">
-        <span class="toggle-label" id="label-1on1">1:1 chat</span>
+        <span class="section-label" style="margin-bottom: 0; margin-right: 16px;">Chat type</span>
+        <span class="toggle-label" id="label-1on1">1:1</span>
         <label class="toggle-switch">
           <input type="checkbox" id="chat-type-toggle">
           <span class="toggle-slider"></span>
         </label>
-        <span class="toggle-label" id="label-group">Group chat (3)</span>
+        <span class="toggle-label" id="label-group">Group (3)</span>
       </div>
       <!-- Hidden for now - may add to the right of Group label later
       <div id="group-size-container" class="group-size-container" style="display: none;">
@@ -720,9 +745,9 @@
 
     <!-- Conversation Topic Section -->
     <div class="section">
-      <span class="section-label">Conversation topic</span>
+      <span class="section-label">Conversation</span>
       <select id="topic-select" class="topic-select">
-        <option value="" disabled selected>Choose a topic...</option>
+        <option value="" disabled selected>Choose a topic</option>
         <option value="sports">🏀 Sports</option>
         <option value="highschool">🎒 High School</option>
         <option value="genz">✨ Gen-Z</option>
@@ -736,14 +761,13 @@
 
     <!-- Custom Topic -->
     <div class="section">
-      <span class="section-label">Custom topic</span>
       <div class="custom-topic-row">
         <div class="custom-topic-input-wrapper">
           <input
             type="text"
             id="custom-topic-input"
             class="custom-topic-input"
-            placeholder="Describe topic"
+            placeholder="Describe custom topic..."
             maxlength="75"
           />
         </div>
@@ -793,26 +817,22 @@
           </div>
         </div>
       </div>
-      <div class="slider-container" style="margin-top: 12px;">
-        <span class="subsection-label">🌈 Gradient</span>
-        <select id="gradient-select" class="gradient-select" style="margin-top: 4px;">
+      <div class="slider-row" style="margin-top: 16px;">
+        <img src="data:image/svg+xml,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xmlns%3Axlink%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%22%3E%0A%3Cmask%20id%3D%22mask0_126_23412%22%20style%3D%22mask-type%3Aalpha%22%20maskUnits%3D%22userSpaceOnUse%22%20x%3D%220%22%20y%3D%220%22%20width%3D%2224%22%20height%3D%2224%22%3E%0A%3Crect%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22url%28%23pattern0_126_23412%29%22%2F%3E%0A%3C%2Fmask%3E%0A%3Cg%20mask%3D%22url%28%23mask0_126_23412%29%22%3E%0A%3Crect%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22url%28%23paint0_linear_126_23412%29%22%2F%3E%0A%3C%2Fg%3E%0A%3Cdefs%3E%0A%3Cpattern%20id%3D%22pattern0_126_23412%22%20patternContentUnits%3D%22objectBoundingBox%22%20width%3D%221%22%20height%3D%221%22%3E%0A%3Cuse%20xlink%3Ahref%3D%22%23image0_126_23412%22%20transform%3D%22scale%280.0208333%29%22%2F%3E%0A%3C%2Fpattern%3E%0A%3ClinearGradient%20id%3D%22paint0_linear_126_23412%22%20x1%3D%223.2941%22%20y1%3D%22-2.84101%22%20x2%3D%22-3.31793%22%20y2%3D%2221.7886%22%20gradientUnits%3D%22userSpaceOnUse%22%3E%0A%3Cstop%20stop-color%3D%22%23D300C5%22%2F%3E%0A%3Cstop%20offset%3D%221%22%20stop-color%3D%22%237043EA%22%2F%3E%0A%3C%2FlinearGradient%3E%0A%3Cimage%20id%3D%22image0_126_23412%22%20width%3D%2248%22%20height%3D%2248%22%20preserveAspectRatio%3D%22none%22%20xlink%3Ahref%3D%22data%3Aimage%2Fpng%3Bbase64%2CiVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAMKADAAQAAAABAAAAMAAAAADbN2wMAAACaklEQVRoBe2ZzSsFYRTGL1mglBApn1koWUiWFrK0ZW9jaWFlR1lYWvgHKKTs7GwkkpVYUPKxIJQi5Lt8P88173Sa7rhzx9y5ZzKnHu87Z973nN85cy8zI5GILe7A%2F%2B5AXkDllyNON9QF1UKVQpgmLoXOMF%2BFVqBrKGdWg8zj0Bb0CX1lKO7hXsZgrNCsBZmmoVcoU2i39YzFmIydNStF5FnIT7fdwJ1%2BxmYO5grUuhDtFHImzNYxczFnIDaGKB9QtmDd4jInc%2F%2FJ%2BAVzSxCWnwy%2BbBS7woJMl2ck0wr6FcGb4sjkyaqw6gYyG7WMZCJbWlvACi3QTg6y%2FWrdOOvcpO2YjLbl27OfyYDjWOOhK2MJaJ8hbR138pCRrEmTV6APniLLr3kgI1mTJgvoNM4IjDarLKA%2BAuAGsc5MZAG205xUPNrNlk9kLwAuVAwt0chaTIe8Au9yhfL5veGTBdwaZwTGU8MoC9g3zgiMKQvgA3ZU7DAVaBuczr96Wo%2FJmtK24dUKbbh2Jbn8DtA%2FJU8qnc%2F8xsXXGVeQqVbbeAG2tK9cehUXQDZPNo9V2rq%2F6IncWlSGkS9htRRxBBZPz8MWf3Jows8TKNdFHIOBb7x9GTceQLkqgp%2BCRl%2FkYhMvHe%2BTwi5iCTmrBYfv6XDI8HzmHfRN69jIe%2B47KIzuvyHPHNQMBWa858g2%2FCNyTEL1fqgL0mxi8KCNDdmBli2tY3yCfJl8pHQLwJunVreTwr%2BH%2BQREuAohAl8KnWMe6sNTh5Uw1UeJXzj%2BtuiBvDQDy4I1r0kbkHYIaoceoA1oDdqE%2BA%2B62OIOxB3IUQe%2BAVS%2BTvAWfaYVAAAAAElFTkSuQmCC%22%2F%3E%0A%3C%2Fdefs%3E%0A%3C%2Fsvg%3E%0A" alt="Gradient" class="slider-icon">
+        <select id="gradient-select" class="gradient-select">
           <option value="none" selected>No gradient</option>
           <option value="gradient">Gradient</option>
         </select>
       </div>
-      <div class="slider-container" style="margin-top: 12px;">
-        <span class="subsection-label">📷 Media</span>
-        <select id="media-select" class="gradient-select" style="margin-top: 4px;">
-          <option value="none" selected>None</option>
+      <div class="slider-row" style="margin-top: 16px;">
+        <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CjxtYXNrIGlkPSJtYXNrMF8xMzRfMTQiIHN0eWxlPSJtYXNrLXR5cGU6YWxwaGEiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+CjxyZWN0IHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgZmlsbD0idXJsKCNwYXR0ZXJuMF8xMzRfMTQpIi8+CjwvbWFzaz4KPGcgbWFzaz0idXJsKCNtYXNrMF8xMzRfMTQpIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSJibGFjayIvPgo8L2c+CjxkZWZzPgo8cGF0dGVybiBpZD0icGF0dGVybjBfMTM0XzE0IiBwYXR0ZXJuQ29udGVudFVuaXRzPSJvYmplY3RCb3VuZGluZ0JveCIgd2lkdGg9IjEiIGhlaWdodD0iMSI+Cjx1c2UgeGxpbms6aHJlZj0iI2ltYWdlMF8xMzRfMTQiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMjA4MzMzKSIvPgo8L3BhdHRlcm4+CjxpbWFnZSBpZD0iaW1hZ2UwXzEzNF8xNCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIiB4bGluazpocmVmPSJkYXRhOmltYWdlL3BuZztiYXNlNjQsaVZCT1J3MEtHZ29BQUFBTlNVaEVVZ0FBQURBQUFBQXdDQVlBQUFCWEF2bUhBQUFBQVhOU1IwSUFyczRjNlFBQUFFUmxXRWxtVFUwQUtnQUFBQWdBQVlkcEFBUUFBQUFCQUFBQUdnQUFBQUFBQTZBQkFBTUFBQUFCQUFFQUFLQUNBQVFBQUFBQkFBQUFNS0FEQUFRQUFBQUJBQUFBTUFBQUFBRGJOMndNQUFBRFRFbEVRVlJvQmQxWlBZc1VRUkJkRlUzTXhNVEVPUU1UVFFYTnZOUmZJQWVpb2JHcDhlVW1KeWIrQWczRlNBd0VRUlBCeEQrZ25vWXFDb0tjSCsvZGJRMDF0Vk85L1ZITHpsbndycXU2cTE5VnpmWDA5TXpPWnYrcFhFUmQ5NEIzd0hmZ2J5UElRUzV5a250bGNnTE1POEJ2b0RWcGJ6NjVHWU94UW9XRXp3RXZjSFEvWTRVV3dhc1NuZVF5UHNZTUVhNUx1Mncrb0c4TE9CTVFnUnprSXFjdWlqRkQ3Z25lWEpxWWdVNEIwVUpPV3dSak53dDNDRjBBcjVhVm83YWowaWEzanNYWXpXSzNTdjdMUlM1QWVRUHNBUytBczBDTGtGc1h3TmpOb2dtcGEySHlldnlKSHF6VU5aK05WMFhwRVI0REc2KzhIdCt0aWpDY3BQbWFDbGkycnJsTHZCckducjAwOWlUTTFCWHBrT0ZUNERQd0NEZ050RW9xWGhIM2tibTMvVGRLZnhGWmdYTll2R1ZMcUNDbjliaEdGNUI3aXJYVjJpVWxkdllwVmlaSWF3TWNSOGM1Z0x2U21LejlGQ3VKU3l0SjhsNjRDL3dFT1BZTnVBMW9tY1FwVmhLWGxna3krWWVBOU9sMm13NXptY1FwVmlkSFBaVzgrTEtJeVp4aUpTbHB2U3N2NDlLK1JoR2lzMTNiS1ZZbk1hWi9SSExYZ1M4bVllczdkb3JGbEJCSm5tSnRJdHBtOHVmbktWeENteXBDbjJKRHNsWWt5Vk9zVGxqck9ubmhTaFVoUHF0cWRXN1VlN0VEdE1lU2x3bGVFVEkrMWw1QjV3UGdGbEQ3QUxWNTluSHNDODBuak1peTZaMk13aUpjUXVQTEIrRlg1ZjhXK2laUUttNDgrMHA1SjVQWkpUVHpPOWpXbC9aallBUElGY3ZSejZ0OXFYY0plK1lEcFVOamZjWG1VMzRiT0huZ212d3JjNlR0bldzZlNFSWtiVTlvbEE2MitIanRMbnh1QUh5SWVtTG5EdngyWUZtSFVudEFxSXl1Z0p0dmdCdHFybFp0UG5wcy96TWZQL2RacHhKN1FLaU1rZ0lZNzVtYXExV2J5MkE3K3dYUGE4Qjk0SStlZFJoMTNoTzhzYms3MlMzV1hnVnRlN1YyR05CK0tiMTZDWG5CVS8wMkVjODNwd0ErT0p0dVlpOTRxaitpZ0pCdE5KVmthcXkxZ0xBSFdTckoxRmh1QVdOSGlhc3BZbWNzTjU0emZiRzdoUEF5cHZNd2R4TUlPOHlsbm5xTDZTNzJzQUF0clh5YWEweGZpRmQ3SllUOGh5anpkdFV2TkRyY2Z1eldBdDVyUnVpYnhvNDBMYmVOWFJXcjloUmJHbXhsUDAzVm5tSnpDK0NTM0FMczcycGhQdzR5a1loVHJOM05sdG1NR1NhVCtMVFlXczNhUCs2MkZpRHphMCt4M3BMSi9yd3VDUnk2OWgrQW54Y05UMWE5THdBQUFBQkpSVTVFcmtKZ2dnPT0iLz4KPC9kZWZzPgo8L3N2Zz4K" alt="Media" class="slider-icon">
+        <select id="media-select" class="gradient-select">
+          <option value="none" selected>No media</option>
           <option value="media-chat">Media chat</option>
           <option value="reels">Reels</option>
           <option value="both">Both</option>
         </select>
       </div>
-    </div>
-
-    <div class="button-row">
-      <button id="diagnostics-btn" class="secondary">🔍 Run Diagnostics</button>
     </div>
 
     <div class="tagline">
@@ -1639,14 +1659,6 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
         }, '*');
         showStatus('Applying Media chat and Reels...', 'info');
       }
-    });
-
-    // Diagnostics button handler
-    document.getElementById('diagnostics-btn').addEventListener('click', () => {
-      showStatus('Running diagnostics... Check Figma console for details', 'info');
-      parent.postMessage({
-        pluginMessage: { type: 'run-diagnostics' }
-      }, '*');
     });
 
     window.addEventListener('focus', () => {

@@ -2,7 +2,7 @@
 // Uses Llama API for conversation generation
 
 // Show the plugin UI
-figma.showUI(__html__, { width: 320, height: 710 });
+figma.showUI(__html__, { width: 320, height: 725 });
 
 // ============================================================================
 // AVAILABLE PROFILE VARIANTS

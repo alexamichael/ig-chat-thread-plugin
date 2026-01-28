@@ -20,7 +20,7 @@ Toggle offers mode switching between 1:1 chat and Group chat (3 people). The tog
 - **1:1 chat** - Swaps all Profile photos in Chat blocks and Header module and Title text in the Header module
 - **Group chat** - Accounts for 3 people in the chat, swaps all Profile photos and Admin text in Chat blocks and Title text in the Header module. Usernames are aligned with Profile photos.
 
-Profile photo usernames: aimi.allover, alex.anyways18, azevedo_drdr, chantouflowergirl, gwangurl77, hi_kimuraito, kalindi_rainbows, mishka_songs, pierre_thecomet, sunflower_power77, vasudaydreams, silvaqueen15, pia.in.a.pod, sprinkles_bby19, paisley.print.48, jaded.elephant17, alo.daiane1, e.manny.well.52, Handle20, princess_peace, paulo.amoda1, zacarias.brasilia9, unverified_vera, real_yelana15, raissa.cool22, ubiratan.totalmente, seoyeonseoul, heaven.is.nevaeh, lala_adriana900, okay_kaiden_459, mika_florist45, lil_wyatt838, its_santos787, nora.needs.cheese, stellas_gr00v3, hidayathere22, maiara_praia1
+Usernames: aimi.allover, alex.anyways18, azevedo_drdr, chantouflowergirl, gwangurl77, hi_kimuraito, kalindi_rainbows, mishka_songs, pierre_thecomet, sunflower_power77, vasudaydreams, silvaqueen15, pia.in.a.pod, sprinkles_bby19, paisley.print.48, jaded.elephant17, alo.daiane1, e.manny.well.52, Handle20, princess_peace, paulo.amoda1, zacarias.brasilia9, unverified_vera, real_yelana15, raissa.cool22, ubiratan.totalmente, seoyeonseoul, heaven.is.nevaeh, lala_adriana900, okay_kaiden_459, mika_florist45, lil_wyatt838, its_santos787, nora.needs.cheese, stellas_gr00v3, hidayathere22, maiara_praia1
 
 ---
 
@@ -77,7 +77,7 @@ The sticker slider controls the frequency of sticker messages in conversations. 
 - **Medium** - Occasional sticker messages add visual variety
 - **High** - Frequent sticker content throughout the chat
 
-When enabled, the plugin places stickers from the IGD-Sticker-Packs library around chat messages. Stickers are randomly rotated (±4°, ±8°, or ±16°) and sized between 70-100 pixels for natural variation. Available stickers include: CartoonVibes_Admiration512, PinkWink, Combine, CartoonVibes_LoveYouMeanIt, cat, CartoonVibes_ThinkingOfYou, HighFive, and pinkCry (link to IGD Sticker Packs: https://www.figma.com/design/MGmBsfWqA1IfEaVpqWCksN/IGD-Sticker-Packs?node-id=1-125&t=hh1bxHKheSGUHBJy-1).
+When enabled, the plugin places stickers from the IGD-Sticker-Packs library around chat messages. Stickers are randomly rotated (±4°, ±8°, or ±16°) and sized between 70-100 pixels for natural variation. Available stickers include: CartoonVibes_Admiration512, PinkWink, Combine, CartoonVibes_LoveYouMeanIt, cat, CartoonVibes_ThinkingOfYou, HighFive, and pinkCry. [IGD Sticker Packs](https://www.figma.com/design/MGmBsfWqA1IfEaVpqWCksN/IGD-Sticker-Packs?node-id=1-125&t=hh1bxHKheSGUHBJy-1)
 
 #### Gradient dropdown
 

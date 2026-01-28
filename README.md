@@ -9,7 +9,7 @@ A Figma plugin for generating realistic Instagram Direct Message chat thread moc
 3. With the Chat thread plugin selected, configure your desired settings in the plugin UI. Changes update in real time according to selection
 
 
-## Features
+---
 
 ### Chat type
 
@@ -51,8 +51,6 @@ The Length slider controls how many messages appear in the generated conversatio
 - **Long (~2,000px H)** - Extended conversation for a series of mockups
 
 ---
-
-### Chat flair
 
 ### Emoji slider
 

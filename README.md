@@ -11,8 +11,6 @@ A Figma plugin for generating realistic Instagram Direct Message chat thread moc
 
 ## Features
 
----
-
 ### Chat type
 
 Toggle offers mode switching between 1:1 chat and Group chat (3 people). The toggle also affects how AI organizes conversation content.

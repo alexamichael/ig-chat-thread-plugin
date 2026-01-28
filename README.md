@@ -4,7 +4,7 @@ A Figma plugin for generating realistic Instagram Direct Message chat thread moc
 
 # How it works
 
-1. Drag a Chat Thread component instance from the IG Product Systems (Direct) Figma library onto a frame
+1. Drag a Chat Thread component instance from the [IG Product Systems (Direct) Figma library](https://www.figma.com/design/5BeiKYxJFye6GodOChvwuX/IG-Product-Systems--iOS-?m=auto&t=tVTFxAH7Woxdwg9V-7) onto a frame
 2. Search for and run the IG Direct Chat Thread plugin
 3. With the Chat thread plugin selected, configure your desired settings in the plugin UI. Changes update in real time according to selection
 
@@ -70,7 +70,7 @@ The sticker slider controls the frequency of sticker messages in conversations. 
 - **Medium** - Occasional sticker messages add visual variety
 - **High** - Frequent sticker content throughout the chat
 
-When enabled, the plugin places stickers from the IGD-Sticker-Packs library around chat messages. Stickers are randomly rotated (±4°, ±8°, or ±16°) and sized between 70-100 pixels for natural variation. Available stickers include: CartoonVibes_Admiration512, PinkWink, Combine, CartoonVibes_LoveYouMeanIt, cat, CartoonVibes_ThinkingOfYou, HighFive, and pinkCry. [IGD Sticker Packs](https://www.figma.com/design/MGmBsfWqA1IfEaVpqWCksN/IGD-Sticker-Packs?node-id=1-125&t=hh1bxHKheSGUHBJy-1)
+When enabled, the plugin places stickers from the IGD-Sticker-Packs library around chat messages. Stickers are randomly rotated (±4°, ±8°, or ±16°) and sized between 70-100 pixels for natural variation. Available stickers include: CartoonVibes_Admiration512, PinkWink, Combine, CartoonVibes_LoveYouMeanIt, cat, CartoonVibes_ThinkingOfYou, HighFive, and pinkCry.([IGD Sticker Packs](https://www.figma.com/design/MGmBsfWqA1IfEaVpqWCksN/IGD-Sticker-Packs?node-id=1-125&t=hh1bxHKheSGUHBJy-1))
 
 ### Gradient dropdown
 

@@ -39,13 +39,10 @@ Choose from 8 predefined topic templates that generate contextually appropriate 
 
 Each topic template has separate prompts optimized for 1:1 and 3-person group chat conversations.
 
----
 
 ### Custom topics
 
 Enter any custom topic description up to 75 characters in the "Describe custom topic..." input field. The plugin uses the Llama API to generate contextually relevant conversation content based on your description. Click the "Generate" button to create AI-powered messages that match your specified topic. The generate button enables once you type a custom topic.
-
----
 
 ### Conversation length
 
@@ -59,7 +56,7 @@ The Length slider controls how many messages appear in the generated conversatio
 
 ### Chat flair
 
-#### Emoji slider
+### Emoji slider
 
 The emoji slider controls the frequency of emoji reactions on chat messages. The slider has 3 positions:
 

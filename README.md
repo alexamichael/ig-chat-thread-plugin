@@ -66,7 +66,7 @@ The emoji slider controls the frequency of emoji reactions on chat messages. The
 
 When enabled, the plugin swaps emoji components using the MDS-iOS-Emojis library. Available reaction emojis include: Grinning Face with Big Eyes, Red Heart, Thumbs Up, Purple Heart, Fire, Pouting Face, Face Screaming in Fear, and Face with Tears of Joy. Group chat reactions are set up to mimic realistic .Chat reactions, using Profile photos or number counts and differ from 1:1 chat reactions.
 
-#### Stickers slider
+### Stickers slider
 
 The sticker slider controls the frequency of sticker messages in conversations. The slider has 3 positions:
 
@@ -76,14 +76,14 @@ The sticker slider controls the frequency of sticker messages in conversations. 
 
 When enabled, the plugin places stickers from the IGD-Sticker-Packs library around chat messages. Stickers are randomly rotated (±4°, ±8°, or ±16°) and sized between 70-100 pixels for natural variation. Available stickers include: CartoonVibes_Admiration512, PinkWink, Combine, CartoonVibes_LoveYouMeanIt, cat, CartoonVibes_ThinkingOfYou, HighFive, and pinkCry. [IGD Sticker Packs](https://www.figma.com/design/MGmBsfWqA1IfEaVpqWCksN/IGD-Sticker-Packs?node-id=1-125&t=hh1bxHKheSGUHBJy-1)
 
-#### Gradient dropdown
+### Gradient dropdown
 
 The gradient dropdown applies visual effects to the chat thread:
 
 - **No gradient** - Standard chat appearance with default styling
 - **Gradient** - Applies a purple-to-pink Instagram-style gradient overlay (#D300C5 to #7043EA)
 
-#### Media integration dropdown
+### Media integration dropdown
 
 The media dropdown controls rich media content in conversations:
 

@@ -3356,6 +3356,15 @@ function findSwappableParent(textChatNode) {
 async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
   console.log(`[MEDIA CHAT] Applying media at ${percentage}% with types:`, mediaTypes);
 
+  // Load all pages first to enable searching across the document
+  // This is required because manifest has documentAccess: dynamic-page
+  try {
+    await figma.loadAllPagesAsync();
+    console.log('[MEDIA CHAT] Loaded all pages for document search');
+  } catch (loadError) {
+    console.log('[MEDIA CHAT] Warning: Could not load all pages:', loadError.message);
+  }
+
   // Detect if this is a group chat (3+ people) by checking "Group chat?" property
   var isGroupChat = false;
   try {
@@ -3432,10 +3441,10 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
 
   // Determine if "both" mode is selected (need at least 2 slots for one of each type)
   const isBothModeEarly = mediaTypes.length === 2 && mediaTypes.includes('media-chat') && mediaTypes.includes('reels');
-  
+
   // Select which Chat blocks get modified
   let selectedIndices = [];
-  
+
   // For short threads (5 or fewer blocks), use a simpler selection approach
   if (chatBlocks.length <= 5) {
     // Short thread: select specific indices based on length
@@ -3495,7 +3504,7 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
       const interval = baseInterval + Math.floor(Math.random() * variation);
       nextIndex += interval;
     }
-    
+
     // Ensure minimum selections for "both" mode even in medium threads
     if (isBothModeEarly && selectedIndices.length < 2 && chatBlocks.length >= 2) {
       // Add another index if we only got one
@@ -3512,7 +3521,7 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
         selectedIndices = [0, Math.min(1, chatBlocks.length - 1)];
       }
     }
-    
+
     console.log(`[MEDIA CHAT] Medium/long thread (${chatBlocks.length} blocks) - selected ${selectedIndices.length} indices: ${selectedIndices.join(', ')}`);
   }
 
@@ -3847,8 +3856,41 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
 
       console.log(`[MEDIA CHAT] Swapping "${propKeyToSwap}" to node ID: ${nodeId}`);
 
+      // Verify the node exists before attempting swap
+      try {
+        const targetNode = await figma.getNodeByIdAsync(nodeId);
+        if (!targetNode) {
+          console.log(`[MEDIA CHAT] ✗ Node ID ${nodeId} does not exist or is not accessible`);
+          continue;
+        }
+        console.log(`[MEDIA CHAT] Verified target node exists: "${targetNode.name}"`);
+      } catch (verifyError) {
+        console.log(`[MEDIA CHAT] ✗ Could not verify node: ${verifyError.message}`);
+        continue;
+      }
+
       // Set the instance swap property
-      chatBlock.setProperties({ [propKeyToSwap]: nodeId });
+      try {
+        chatBlock.setProperties({ [propKeyToSwap]: nodeId });
+        console.log(`[MEDIA CHAT] ✓ setProperties called successfully`);
+      } catch (setPropsError) {
+        console.log(`[MEDIA CHAT] ✗ setProperties failed: ${setPropsError.message}`);
+        continue;
+      }
+
+      // Verify the swap actually happened
+      try {
+        const updatedProps = chatBlock.componentProperties;
+        const newValue = updatedProps[propKeyToSwap] ? updatedProps[propKeyToSwap].value : null;
+        if (newValue === nodeId) {
+          console.log(`[MEDIA CHAT] ✓ Verified swap succeeded`);
+        } else {
+          console.log(`[MEDIA CHAT] ✗ Swap verification failed: expected ${nodeId}, got ${newValue}`);
+          continue;
+        }
+      } catch (verifySwapError) {
+        console.log(`[MEDIA CHAT] Warning: Could not verify swap: ${verifySwapError.message}`);
+      }
 
       console.log(`[MEDIA CHAT] ✓ Swapped Chat block ${index} to ${mediaType}`);
       appliedCount++;

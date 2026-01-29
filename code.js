@@ -3430,30 +3430,91 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
     return aY - bY;
   });
 
-  // Determine spacing based on percentage
-  let baseInterval, variation;
-  if (percentage === 25) {
-    baseInterval = 4;
-    variation = 2;
-  } else if (percentage === 50) {
-    baseInterval = 2;
-    variation = 2;
-  } else {
-    baseInterval = 3;
-    variation = 2;
-  }
-
+  // Determine if "both" mode is selected (need at least 2 slots for one of each type)
+  const isBothModeEarly = mediaTypes.length === 2 && mediaTypes.includes('media-chat') && mediaTypes.includes('reels');
+  
   // Select which Chat blocks get modified
-  const selectedIndices = [];
-  let nextIndex = Math.floor(Math.random() * 2);
+  let selectedIndices = [];
+  
+  // For short threads (5 or fewer blocks), use a simpler selection approach
+  if (chatBlocks.length <= 5) {
+    // Short thread: select specific indices based on length
+    if (chatBlocks.length === 1) {
+      selectedIndices = [0];
+    } else if (chatBlocks.length === 2) {
+      // For "both" mode, use both; otherwise pick one randomly
+      selectedIndices = isBothModeEarly ? [0, 1] : [Math.floor(Math.random() * 2)];
+    } else if (chatBlocks.length === 3) {
+      // Pick 2 indices for "both", or 1 for single type
+      if (isBothModeEarly) {
+        // Pick first and last, or first and middle, etc.
+        const options = [[0, 2], [0, 1], [1, 2]];
+        selectedIndices = options[Math.floor(Math.random() * options.length)];
+      } else {
+        selectedIndices = [Math.floor(Math.random() * 3)];
+      }
+    } else if (chatBlocks.length === 4) {
+      if (isBothModeEarly) {
+        // Pick 2 spaced apart
+        const options = [[0, 2], [0, 3], [1, 3]];
+        selectedIndices = options[Math.floor(Math.random() * options.length)];
+      } else {
+        // Pick 1
+        selectedIndices = [Math.floor(Math.random() * 4)];
+      }
+    } else { // chatBlocks.length === 5
+      if (isBothModeEarly) {
+        // Pick 2 spaced apart
+        const options = [[0, 3], [1, 4], [0, 4], [1, 3]];
+        selectedIndices = options[Math.floor(Math.random() * options.length)];
+      } else {
+        // Pick 1-2
+        const idx1 = Math.floor(Math.random() * 5);
+        selectedIndices = [idx1];
+      }
+    }
+    console.log(`[MEDIA CHAT] Short thread (${chatBlocks.length} blocks) - selected indices: ${selectedIndices.join(', ')}`);
+  } else {
+    // Medium to long threads: use interval-based selection
+    let baseInterval, variation;
+    if (percentage === 25) {
+      baseInterval = 4;
+      variation = 2;
+    } else if (percentage === 50) {
+      baseInterval = 2;
+      variation = 2;
+    } else {
+      baseInterval = 3;
+      variation = 2;
+    }
 
-  while (nextIndex < chatBlocks.length) {
-    selectedIndices.push(nextIndex);
-    const interval = baseInterval + Math.floor(Math.random() * variation);
-    nextIndex += interval;
+    let nextIndex = Math.floor(Math.random() * 2);
+
+    while (nextIndex < chatBlocks.length) {
+      selectedIndices.push(nextIndex);
+      const interval = baseInterval + Math.floor(Math.random() * variation);
+      nextIndex += interval;
+    }
+    
+    // Ensure minimum selections for "both" mode even in medium threads
+    if (isBothModeEarly && selectedIndices.length < 2 && chatBlocks.length >= 2) {
+      // Add another index if we only got one
+      if (selectedIndices.length === 1) {
+        // Pick a different index
+        let newIndex;
+        do {
+          newIndex = Math.floor(Math.random() * chatBlocks.length);
+        } while (newIndex === selectedIndices[0]);
+        selectedIndices.push(newIndex);
+        selectedIndices.sort((a, b) => a - b);
+      } else if (selectedIndices.length === 0) {
+        // Shouldn't happen, but handle it
+        selectedIndices = [0, Math.min(1, chatBlocks.length - 1)];
+      }
+    }
+    
+    console.log(`[MEDIA CHAT] Medium/long thread (${chatBlocks.length} blocks) - selected ${selectedIndices.length} indices: ${selectedIndices.join(', ')}`);
   }
-
-  console.log(`[MEDIA CHAT] Selected ${selectedIndices.length} Chat blocks at indices: ${selectedIndices.join(', ')}`);
 
   // Clear any previous tracking
   originalTextChatNodes.clear();

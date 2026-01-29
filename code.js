@@ -1570,6 +1570,56 @@ function analyzeChatStructure(threadNode) {
 }
 
 /**
+ * Detect what media types are currently present in a chat thread
+ * Returns: { hasMediaChat: boolean, hasIGContentShare: boolean }
+ */
+async function detectMediaInThread(threadNode) {
+  const chatBlocks = findChatBlockComponents(threadNode);
+
+  let hasMediaChat = false;
+  let hasIGContentShare = false;
+
+  for (const chatBlock of chatBlocks) {
+    try {
+      const props = chatBlock.componentProperties;
+      const propKeys = Object.keys(props);
+
+      for (const key of propKeys) {
+        if (props[key].type !== 'INSTANCE_SWAP') continue;
+
+        const currentValue = props[key].value;
+        if (!currentValue) continue;
+
+        const currentComponent = await figma.getNodeByIdAsync(currentValue);
+        if (!currentComponent) continue;
+
+        const compName = currentComponent.name || '';
+        const parentName = currentComponent.parent ? (currentComponent.parent.name || '') : '';
+
+        // Check for Media chat
+        if (parentName === 'Media chat' || compName.toLowerCase().includes('media chat')) {
+          hasMediaChat = true;
+        }
+
+        // Check for IG content share (used for Reels)
+        if (parentName === 'IG content share' || compName.toLowerCase().includes('ig content share')) {
+          hasIGContentShare = true;
+        }
+
+        // Early exit if both found
+        if (hasMediaChat && hasIGContentShare) {
+          return { hasMediaChat, hasIGContentShare };
+        }
+      }
+    } catch (e) {
+      // Continue scanning other blocks
+    }
+  }
+
+  return { hasMediaChat, hasIGContentShare };
+}
+
+/**
  * Convert structure to a pattern description for Llama
  * e.g., "3 messages from Person A, then 2 messages from Person B, then 1 from Person A"
  */
@@ -1613,13 +1663,13 @@ function structureToArray(structure) {
 // ============================================================================
 
 // Listen for selection changes and automatically analyze
-figma.on('selectionchange', () => {
+figma.on('selectionchange', async () => {
   const selection = figma.currentPage.selection;
 
   if (selection.length === 0) {
     figma.ui.postMessage({
       type: 'error',
-      message: 'Please select a Chat Thread component or group containing Chat Blocks or Text Chats'
+      message: 'Please select a Chat Thread component'
     });
     return;
   }
@@ -1629,7 +1679,7 @@ figma.on('selectionchange', () => {
   if (result.structure.length === 0) {
     figma.ui.postMessage({
       type: 'error',
-      message: 'No chat bubbles found. Please select a Chat Thread component or group containing Chat Blocks or Text Chats.'
+      message: 'No chat bubbles found. Please select a Chat Thread component.'
     });
     return;
   }
@@ -1641,13 +1691,17 @@ figma.on('selectionchange', () => {
     hasTextNode: s.textNode !== null
   }));
 
+  // Detect what media types are currently in the thread
+  const mediaState = await detectMediaInThread(selection[0]);
+
   figma.ui.postMessage({
     type: 'structure-analyzed',
     structure: structureArray,
     patternDescription: patternDescription,
     totalBubbles: result.structure.length,
     isGroupChat: result.isGroupChat,
-    participants: result.participants
+    participants: result.participants,
+    currentMedia: mediaState
   });
 
   // Store the structure for later use
@@ -4107,7 +4161,7 @@ async function removeMediaChatFromThread(threadNode) {
   // First, restore from tracked original values (for current session changes)
   for (const [chatBlockId, data] of originalTextChatNodes) {
     try {
-      const chatBlock = figma.getNodeById(chatBlockId);
+      const chatBlock = await figma.getNodeByIdAsync(chatBlockId);
       if (!chatBlock) {
         console.log('[MEDIA CHAT] Could not find Chat block with ID: ' + chatBlockId);
         continue;
@@ -4144,18 +4198,31 @@ async function removeMediaChatFromThread(threadNode) {
         if (!currentValue) continue;
 
         // Get the current component to check if it's Media chat or Reels
-        const currentComponent = figma.getNodeById(currentValue);
+        const currentComponent = await figma.getNodeByIdAsync(currentValue);
         if (!currentComponent) continue;
 
         // Check if the component or its parent is a media type we should remove
         let isMediaComponent = false;
         const compName = currentComponent.name || '';
         const parentName = currentComponent.parent ? (currentComponent.parent.name || '') : '';
+        const parentType = currentComponent.parent ? currentComponent.parent.type : '';
 
-        // Check for Media chat or Reels
-        if (parentName === 'Media chat' || parentName === 'Reels' ||
-            compName.toLowerCase().includes('media chat') || compName.toLowerCase().includes('reels')) {
+        // Log what we're checking for debugging
+        console.log('[MEDIA CHAT] Checking property "' + key + '": compName="' + compName + '", parentName="' + parentName + '", parentType="' + parentType + '"');
+
+        // Check for Media chat or Reels (IG content share)
+        // The parent of a variant is the COMPONENT_SET
+        if (parentName === 'Media chat' || parentName === 'Reels' || parentName === 'IG content share' ||
+            compName.toLowerCase().includes('media chat') || compName.toLowerCase().includes('reels') ||
+            compName.toLowerCase().includes('ig content share')) {
           isMediaComponent = true;
+          console.log('[MEDIA CHAT]   → IS media component!');
+        }
+
+        // Also check if it's NOT a Text chat (which is what we want to keep)
+        if (!isMediaComponent && parentName !== 'Text chat' && !compName.toLowerCase().includes('text chat')) {
+          // Could be a media component with unexpected naming - log for debugging
+          console.log('[MEDIA CHAT]   → NOT Text chat, NOT known media type - could be unrecognized media');
         }
 
         if (!isMediaComponent) continue;

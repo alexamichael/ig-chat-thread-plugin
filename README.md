@@ -119,7 +119,7 @@ The plugin requires network access for AI-powered message generation and image l
 
 ## Version
 
-Current version: **v3.2 (Beta)**
+Current version: **1**
 
 ---
 

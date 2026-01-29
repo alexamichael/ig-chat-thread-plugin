@@ -1430,16 +1430,35 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
 
         if (userSelectedChatType === null) {
           if (isGroupChat) {
-            chatTypeToggle.checked = true;
-            labelGroup.classList.add('active');
-            label1on1.classList.remove('active');
-            groupSizeContainer.style.display = 'block';
-            groupSizeSelect.value = String(participants);
+            if (chatTypeToggle) chatTypeToggle.checked = true;
+            if (labelGroup) labelGroup.classList.add('active');
+            if (label1on1) label1on1.classList.remove('active');
+            if (groupSizeContainer) groupSizeContainer.style.display = 'block';
+            if (groupSizeSelect) groupSizeSelect.value = String(participants);
           } else {
-            chatTypeToggle.checked = false;
-            label1on1.classList.add('active');
-            labelGroup.classList.remove('active');
-            groupSizeContainer.style.display = 'none';
+            if (chatTypeToggle) chatTypeToggle.checked = false;
+            if (label1on1) label1on1.classList.add('active');
+            if (labelGroup) labelGroup.classList.remove('active');
+            if (groupSizeContainer) groupSizeContainer.style.display = 'none';
+          }
+        }
+
+        // Set media dropdown based on detected media in the thread
+        if (msg.currentMedia) {
+          const mediaSelect = document.getElementById('media-select');
+          if (mediaSelect) {
+            const hasMediaChat = msg.currentMedia.hasMediaChat;
+            const hasIGContentShare = msg.currentMedia.hasIGContentShare;
+
+            if (hasMediaChat && hasIGContentShare) {
+              mediaSelect.value = 'both';
+            } else if (hasMediaChat) {
+              mediaSelect.value = 'media-chat';
+            } else if (hasIGContentShare) {
+              mediaSelect.value = 'reels';
+            } else {
+              mediaSelect.value = 'none';
+            }
           }
         }
 

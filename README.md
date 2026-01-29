@@ -89,3 +89,44 @@ The media dropdown controls rich media content in conversations:
 - **Both** - Combines Media chat and Reels content in the same conversation
 
 Media images are sourced from the Widen DAM (facebook.widen.net) and automatically matched to conversation context using keyword analysis. Reels automatically generate different Profile photos and usernames.
+
+---
+
+## Files
+
+| File | Description |
+|------|-------------|
+| `manifest.json` | Plugin configuration, ID, and network access permissions |
+| `code.js` | Main plugin logic - Figma API interactions, component analysis, text population, profile assignment |
+| `ui.html` | Development UI file with styles and JavaScript |
+| `ui-built.html` | Production UI file loaded by Figma (per manifest.json) |
+| `gradient24.svg` | Gradient icon for the dropdown (24×24 with purple-pink gradient) |
+| `media24.svg` | Media icon for the dropdown (24×24 black) |
+| `sticker24.png` | Sticker icon for the slider (scaled to 32px width in UI) |
+| `ig-direct_chat-gen-hero2x.png` | Header banner image |
+
+---
+
+## Network access
+
+The plugin requires network access for AI-powered message generation and image loading:
+
+- `https://corsproxy.io` - CORS proxy for API requests
+- `https://api.llama.com` - Llama API for conversation generation
+- `https://facebook.widen.net` - Widen DAM for media chat and reels images
+
+---
+
+## Version
+
+Current version: **v3.2 (Beta)**
+
+---
+
+## Support
+
+Questions or feedback? Reach out to [Alexa Michael](https://www.internalfb.com/profile/view/6709430)
+
+---
+
+Built for Instagram Design System

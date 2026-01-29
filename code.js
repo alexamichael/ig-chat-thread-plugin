@@ -3463,11 +3463,44 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
   // Track used images to prevent duplicates in the same thread
   const usedImagesInThread = new Set();
 
-  for (const index of selectedIndices) {
+  // When "both" is selected (media-chat AND reels), ensure at least one of each type
+  // Create an array of media types to use for each selected index
+  let mediaTypeAssignments = [];
+  const isBothMode = mediaTypes.length === 2 && mediaTypes.includes('media-chat') && mediaTypes.includes('reels');
+
+  if (isBothMode && selectedIndices.length >= 2) {
+    // Guarantee at least one of each type
+    // Randomly assign which index gets which guaranteed type
+    const guaranteedIndices = [0, 1];
+    // Shuffle the first two to randomize which gets media-chat vs reels
+    if (Math.random() > 0.5) {
+      guaranteedIndices.reverse();
+    }
+    mediaTypeAssignments[guaranteedIndices[0]] = 'media-chat';
+    mediaTypeAssignments[guaranteedIndices[1]] = 'reels';
+
+    // Fill remaining indices with random selection
+    for (let i = 2; i < selectedIndices.length; i++) {
+      mediaTypeAssignments[i] = mediaTypes[Math.floor(Math.random() * mediaTypes.length)];
+    }
+    console.log(`[MEDIA CHAT] "Both" mode - guaranteed at least one media-chat and one reels`);
+  } else if (isBothMode && selectedIndices.length === 1) {
+    // Only one slot available - randomly pick one type
+    mediaTypeAssignments[0] = mediaTypes[Math.floor(Math.random() * mediaTypes.length)];
+    console.log(`[MEDIA CHAT] "Both" mode but only 1 slot - randomly picked: ${mediaTypeAssignments[0]}`);
+  } else {
+    // Single media type selected or other cases - random assignment
+    for (let i = 0; i < selectedIndices.length; i++) {
+      mediaTypeAssignments[i] = mediaTypes[Math.floor(Math.random() * mediaTypes.length)];
+    }
+  }
+
+  for (let assignmentIndex = 0; assignmentIndex < selectedIndices.length; assignmentIndex++) {
+    const index = selectedIndices[assignmentIndex];
     const chatBlock = chatBlocks[index];
 
-    // Pick a random media type from the selected ones
-    const mediaType = mediaTypes[Math.floor(Math.random() * mediaTypes.length)];
+    // Use the pre-assigned media type
+    const mediaType = mediaTypeAssignments[assignmentIndex];
 
     console.log(`[MEDIA CHAT] Swapping Chat block ${index} to ${mediaType}`);
 

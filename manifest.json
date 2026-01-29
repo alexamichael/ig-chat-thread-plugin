@@ -1,10 +1,11 @@
 {
   "name": "IG Direct Chat Thread [Beta]",
-  "id": "1590428082327008420",
+  "id": "1598542474889491131",
   "api": "1.0.0",
   "main": "code.js",
   "ui": "ui-built.html",
   "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
   "networkAccess": {
     "allowedDomains": [
       "https://corsproxy.io",

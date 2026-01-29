@@ -86,7 +86,7 @@ const STICKER_COMPONENT_KEYS = {
 // The variant is selected based on matching To - From and Chat bubble properties
 // ============================================================================
 const MEDIA_CHAT_COMPONENT_SET_NAMES = {
-  'media-chat': 'Media chat',
+  'media-chat': 'Media Chat',
   'reels': 'IG content share',  // Reels now uses IG content share with Share=Share reels variant
   'ig-content-share': 'IG content share'
 };

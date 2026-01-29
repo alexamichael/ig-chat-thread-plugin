@@ -86,7 +86,7 @@ const STICKER_COMPONENT_KEYS = {
 // The variant is selected based on matching To - From and Chat bubble properties
 // ============================================================================
 const MEDIA_CHAT_COMPONENT_SET_NAMES = {
-  'media-chat': 'Media Chat',
+  'media-chat': 'Media chat',
   'reels': 'IG content share',  // Reels now uses IG content share with Share=Share reels variant
   'ig-content-share': 'IG content share'
 };
@@ -1694,6 +1694,29 @@ figma.on('selectionchange', async () => {
   // Detect what media types are currently in the thread
   const mediaState = await detectMediaInThread(selection[0]);
 
+  // Detect thread length category based on the height of the thread component
+  // Targets are: Short=917px, Medium=1064px, Long=2200px
+  const threadHeight = selection[0].height || 0;
+  let threadLength = 'long'; // default
+  let lengthSliderValue = 100; // default to long (100)
+
+  // Use midpoints between the target sizes to determine boundaries
+  // Short <= 990 (midpoint between 917 and 1064)
+  // Medium 991-1632 (midpoint between 1064 and 2200)
+  // Long > 1632
+  if (threadHeight <= 990) {
+    threadLength = 'short';
+    lengthSliderValue = 0;
+  } else if (threadHeight <= 1632) {
+    threadLength = 'medium';
+    lengthSliderValue = 50;
+  } else {
+    threadLength = 'long';
+    lengthSliderValue = 100;
+  }
+
+  console.log(`[SELECTION] Thread height: ${Math.round(threadHeight)}px → Length: ${threadLength.toUpperCase()}`);
+
   figma.ui.postMessage({
     type: 'structure-analyzed',
     structure: structureArray,
@@ -1701,7 +1724,10 @@ figma.on('selectionchange', async () => {
     totalBubbles: result.structure.length,
     isGroupChat: result.isGroupChat,
     participants: result.participants,
-    currentMedia: mediaState
+    currentMedia: mediaState,
+    threadLength: threadLength,
+    lengthSliderValue: lengthSliderValue,
+    threadHeight: Math.round(threadHeight)
   });
 
   // Store the structure for later use
@@ -3432,6 +3458,11 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
 
   console.log(`[MEDIA CHAT] Found ${chatBlocks.length} Chat block components`);
 
+  // Log thread length category for debugging
+  const lengthCategory = chatBlocks.length <= 5 ? 'SHORT' :
+                         chatBlocks.length <= 12 ? 'MEDIUM' : 'LONG';
+  console.log(`[MEDIA CHAT] Thread length: ${chatBlocks.length} blocks → Category: ${lengthCategory}`);
+
   // Sort by vertical position
   chatBlocks.sort((a, b) => {
     const aY = a.absoluteTransform ? a.absoluteTransform[1][2] : 0;
@@ -3770,7 +3801,8 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
             try {
               const importedComponentSet = await figma.importComponentSetByKeyAsync(preferred.key);
               if (importedComponentSet) {
-                console.log(`[MEDIA CHAT] Imported component set: "${importedComponentSet.name}"`);
+                console.log(`[MEDIA CHAT] Imported component set: "${importedComponentSet.name}" (looking for: "${targetComponentSetName}")`);
+                console.log(`[MEDIA CHAT] Name comparison: "${importedComponentSet.name}" === "${targetComponentSetName}" → ${importedComponentSet.name === targetComponentSetName}`);
 
                 // Check if this is the component set we're looking for
                 if (importedComponentSet.name === targetComponentSetName) {
@@ -4973,8 +5005,8 @@ figma.ui.onmessage = async (msg) => {
     console.log(`[MEDIA CHAT] Applying media chat at ${percentage}% with types:`, mediaTypes);
 
     try {
-      // First remove any existing media replacements
-      removeMediaChatFromThread(threadNode);
+      // First remove any existing media replacements (MUST await this!)
+      await removeMediaChatFromThread(threadNode);
 
       // Then apply new media chat
       const result = await applyMediaChatToThread(threadNode, percentage, mediaTypes);

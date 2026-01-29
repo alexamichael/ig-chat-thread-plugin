@@ -1462,8 +1462,26 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
           }
         }
 
+        // Set length slider based on detected thread length
+        if (msg.lengthSliderValue !== undefined) {
+          console.log('[UI] Setting length slider to:', msg.lengthSliderValue, 'for', msg.threadLength);
+          const lengthSlider = document.getElementById('length-slider');
+          const lengthProgress = document.getElementById('length-progress');
+          if (lengthSlider) {
+            lengthSlider.value = msg.lengthSliderValue;
+            console.log('[UI] Slider value set to:', lengthSlider.value);
+            if (lengthProgress) {
+              lengthProgress.style.width = msg.lengthSliderValue + '%';
+              console.log('[UI] Progress width set to:', msg.lengthSliderValue + '%');
+            }
+          }
+        }
+
+        // Build status message with thread length
         const chatType = isGroupChat ? '👥 Group Chat (3 people)' : '💬 1:1 Chat';
-        showStatus(`Found ${msg.totalBubbles} bubbles — ${chatType}`, 'info');
+        const lengthLabel = msg.threadLength ? msg.threadLength.charAt(0).toUpperCase() + msg.threadLength.slice(1) : '';
+        const lengthInfo = msg.threadHeight ? ` • ${lengthLabel} (${msg.threadHeight}px)` : '';
+        showStatus(`Found ${msg.totalBubbles} bubbles — ${chatType}${lengthInfo}`, 'info');
       } else if (msg.type === 'diagnostics-complete') {
         showStatus(msg.message, 'success');
         if (msg.reactionRelated && msg.reactionRelated.length > 0) {

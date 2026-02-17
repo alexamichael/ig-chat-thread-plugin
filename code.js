@@ -91,9 +91,14 @@ const MEDIA_CHAT_COMPONENT_SET_NAMES = {
   'ig-content-share': 'IG content share'
 };
 
-// Variant property values for specific media types
-const MEDIA_TYPE_VARIANT_OVERRIDES = {
-  'reels': { 'State': 'Share reels' }  // When reels is selected, set State property to "Share reels"
+// Nested instance configurations for specific media types
+// After swapping to the target component, we find nested instances and set their properties
+const MEDIA_TYPE_NESTED_INSTANCE_CONFIG = {
+  'reels': {
+    nestedInstanceName: '.XMA type',  // The nested instance to find inside IG content share
+    propertyName: 'Type',              // The variant property to set on that nested instance
+    propertyValue: 'Reels'             // The value to set (matches the variant value)
+  }
 };
 
 // Sticker rotation options (in degrees)
@@ -2759,15 +2764,31 @@ function findEmojiComponentByName(emojiName) {
  * @param {boolean} isGroupChat - Whether this is a group chat
  */
 function applyReactionsToThread(threadNode, percentage, isGroupChat) {
-  // Find ALL reactable chat components (Text chat, Media chat, External link)
-  const allChatComponents = findAllReactableChatComponents(threadNode);
+  // Get the VISIBLE bounds of the Chat thread (accounting for clipping parents)
+  const visibleBounds = getVisibleBounds(threadNode);
+  if (visibleBounds) {
+    console.log(`[REACTION] Visible bounds: ${visibleBounds.width.toFixed(0)} x ${visibleBounds.height.toFixed(0)}`);
+  }
 
-  if (allChatComponents.length === 0) {
+  // Find ALL reactable chat components (Text chat, Media chat, External link)
+  const allChatComponentsUnfiltered = findAllReactableChatComponents(threadNode);
+
+  if (allChatComponentsUnfiltered.length === 0) {
     console.log('[REACTION] No reactable chat components found');
     return { applied: 0, total: 0 };
   }
 
-  console.log(`[REACTION] Found ${allChatComponents.length} reactable chat components (Text chat, Media chat, External link)`);
+  // Filter to only include components within the visible bounds
+  const allChatComponents = visibleBounds
+    ? allChatComponentsUnfiltered.filter(comp => isNodeInVisibleBounds(comp, visibleBounds))
+    : allChatComponentsUnfiltered;
+
+  console.log(`[REACTION] Found ${allChatComponentsUnfiltered.length} total reactable chat components, ${allChatComponents.length} in visible area`);
+
+  if (allChatComponents.length === 0) {
+    console.log('[REACTION] No reactable chat components in visible area');
+    return { applied: 0, total: 0 };
+  }
 
   // Discover emoji component IDs from existing instances
   console.log('[REACTION] Discovering emoji component IDs...');
@@ -3083,23 +3104,37 @@ function findChatThreadWindow(threadNode) {
 async function applyStickersToThread(threadNode, percentage) {
   console.log(`[STICKER] Applying stickers at ${percentage}%`);
 
-  // Get the bounds of the Chat thread component to constrain stickers
-  const threadBounds = threadNode.absoluteBoundingBox;
-  if (!threadBounds) {
-    console.log('[STICKER] No bounds for thread node');
+  // Get the VISIBLE bounds of the Chat thread (accounting for clipping parents)
+  const visibleBounds = getVisibleBounds(threadNode);
+  if (!visibleBounds || visibleBounds.width <= 0 || visibleBounds.height <= 0) {
+    console.log('[STICKER] No visible bounds for thread node');
     return { applied: 0, total: 0 };
   }
-  console.log(`[STICKER] Thread bounds: x=${threadBounds.x}, y=${threadBounds.y}, w=${threadBounds.width}, h=${threadBounds.height}`);
+  console.log(`[STICKER] Visible bounds: x=${visibleBounds.x.toFixed(0)}, y=${visibleBounds.y.toFixed(0)}, w=${visibleBounds.width.toFixed(0)}, h=${visibleBounds.height.toFixed(0)}`);
+
+  // Also get full thread bounds for reference
+  const threadBounds = threadNode.absoluteBoundingBox;
+  if (threadBounds) {
+    console.log(`[STICKER] Full thread bounds: ${threadBounds.width.toFixed(0)} x ${threadBounds.height.toFixed(0)} (visible: ${visibleBounds.height.toFixed(0)}px of ${threadBounds.height.toFixed(0)}px)`);
+  }
 
   // Find all reactable chat components (same as reactions)
-  const allChatComponents = findAllReactableChatComponents(threadNode);
+  const allChatComponentsUnfiltered = findAllReactableChatComponents(threadNode);
 
-  if (allChatComponents.length === 0) {
+  if (allChatComponentsUnfiltered.length === 0) {
     console.log('[STICKER] No chat components found');
     return { applied: 0, total: 0 };
   }
 
-  console.log(`[STICKER] Found ${allChatComponents.length} chat components`);
+  // Filter to only include components within the visible bounds
+  const allChatComponents = allChatComponentsUnfiltered.filter(comp => isNodeInVisibleBounds(comp, visibleBounds));
+
+  console.log(`[STICKER] Found ${allChatComponentsUnfiltered.length} total chat components, ${allChatComponents.length} in visible area`);
+
+  if (allChatComponents.length === 0) {
+    console.log('[STICKER] No chat components in visible area');
+    return { applied: 0, total: 0 };
+  }
 
   // Sort by vertical position
   allChatComponents.sort((a, b) => {
@@ -3136,11 +3171,17 @@ async function applyStickersToThread(threadNode, percentage) {
   console.log(`[STICKER] Selected ${selectedIndices.length} messages at indices: ${selectedIndices.join(', ')}`);
 
   // Find the parent frame to add stickers to
-  // We need to add stickers as siblings to the chat components, or to a common parent
-  let stickerParent = threadNode;
-  if (threadNode.type === 'INSTANCE') {
-    // For instances, we can't add children directly
-    // We need to find a frame we can add to, or add to the page
+  // Prefer the clipping parent (viewport frame) for absolute positioning within visible area
+  let stickerParent = null;
+
+  // First, try to use the clipping parent from visible bounds
+  if (visibleBounds.clippingParent && visibleBounds.clippingParent.type === 'FRAME') {
+    stickerParent = visibleBounds.clippingParent;
+    console.log(`[STICKER] Using clipping parent "${stickerParent.name}" for absolute positioning`);
+  } else if (threadNode.type !== 'INSTANCE' && 'appendChild' in threadNode) {
+    stickerParent = threadNode;
+  } else {
+    // Fallback: find nearest non-instance parent or use page
     stickerParent = threadNode.parent || figma.currentPage;
   }
 
@@ -3225,12 +3266,12 @@ async function applyStickersToThread(threadNode, percentage) {
       }
 
       // ================================================================
-      // BOUNDS CHECKING: Ensure sticker stays within Chat thread bounds
+      // BOUNDS CHECKING: Ensure sticker stays within VISIBLE bounds
       // ================================================================
-      const minX = threadBounds.x;
-      const maxX = threadBounds.x + threadBounds.width - stickerSize;
-      const minY = threadBounds.y;
-      const maxY = threadBounds.y + threadBounds.height - stickerHeight;
+      const minX = visibleBounds.x;
+      const maxX = visibleBounds.x + visibleBounds.width - stickerSize;
+      const minY = visibleBounds.y;
+      const maxY = visibleBounds.y + visibleBounds.height - stickerHeight;
 
       // Clamp X position
       if (stickerX < minX) {
@@ -3275,6 +3316,10 @@ async function applyStickersToThread(threadNode, percentage) {
         stickerInstance.x = stickerX;
         stickerInstance.y = stickerY;
       }
+
+      // Set to absolute positioning (ignore auto layout)
+      // This ensures stickers float on top without affecting the chat thread layout
+      stickerInstance.layoutPositioning = "ABSOLUTE";
 
       // Name the sticker for easy identification
       stickerInstance.name = `Sticker - ${sticker.name}`;
@@ -3448,15 +3493,31 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
   }
   console.log('[MEDIA CHAT] Captured ' + gradientStates.length + ' gradient states');
 
-  // Find all Chat block components
-  const chatBlocks = findChatBlockComponents(threadNode);
+  // Get the VISIBLE bounds of the Chat thread (accounting for clipping parents)
+  const visibleBounds = getVisibleBounds(threadNode);
+  if (visibleBounds) {
+    console.log(`[MEDIA CHAT] Visible bounds: ${visibleBounds.width.toFixed(0)} x ${visibleBounds.height.toFixed(0)}`);
+  }
 
-  if (chatBlocks.length === 0) {
+  // Find all Chat block components
+  const chatBlocksUnfiltered = findChatBlockComponents(threadNode);
+
+  if (chatBlocksUnfiltered.length === 0) {
     console.log('[MEDIA CHAT] No Chat block components found');
     return { applied: 0, total: 0 };
   }
 
-  console.log(`[MEDIA CHAT] Found ${chatBlocks.length} Chat block components`);
+  // Filter to only include blocks within the visible bounds
+  const chatBlocks = visibleBounds
+    ? chatBlocksUnfiltered.filter(block => isNodeInVisibleBounds(block, visibleBounds))
+    : chatBlocksUnfiltered;
+
+  console.log(`[MEDIA CHAT] Found ${chatBlocksUnfiltered.length} total Chat blocks, ${chatBlocks.length} in visible area`);
+
+  if (chatBlocks.length === 0) {
+    console.log('[MEDIA CHAT] No Chat blocks in visible area');
+    return { applied: 0, total: 0 };
+  }
 
   // Log thread length category for debugging
   const lengthCategory = chatBlocks.length <= 5 ? 'SHORT' :
@@ -3711,11 +3772,10 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
 
         console.log(`[MEDIA CHAT] Searching component set "${componentSet.name}" with ${componentSet.children.length} variants...`);
 
-        // Check if we have variant overrides for this media type (e.g., reels needs Share=Share reels)
-        const variantOverrides = MEDIA_TYPE_VARIANT_OVERRIDES[mediaType] || {};
-        const hasOverrides = Object.keys(variantOverrides).length > 0;
-        if (hasOverrides) {
-          console.log(`[MEDIA CHAT] Variant overrides for "${mediaType}": ${JSON.stringify(variantOverrides)}`);
+        // Check if we have nested instance config for this media type (e.g., reels needs .XMA type → Type=Reels)
+        const nestedConfig = MEDIA_TYPE_NESTED_INSTANCE_CONFIG[mediaType];
+        if (nestedConfig) {
+          console.log(`[MEDIA CHAT] Will configure nested instance "${nestedConfig.nestedInstanceName}" with ${nestedConfig.propertyName}="${nestedConfig.propertyValue}" after swap`);
         }
 
         for (const child of componentSet.children) {
@@ -3749,63 +3809,49 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
             }
           }
 
-          console.log(`[MEDIA CHAT]   - Variant: "${childName}" → Side=${variantSide}, Bubble=${variantBubble}, Props=${JSON.stringify(variantProps)}`);
+          console.log(`[MEDIA CHAT]   - Variant: "${childName}" → Side="${variantSide}", Bubble="${variantBubble}"`);
+          console.log(`[MEDIA CHAT]     Comparing: Side "${variantSide}" === "${targetSide}" ? ${variantSide === targetSide}`);
+          console.log(`[MEDIA CHAT]     Comparing: Bubble "${variantBubble}" === "${targetBubble}" ? ${variantBubble === targetBubble}`);
 
           // Check if this variant matches what we need
+          // For ALL media types (including reels), match by To-From and Chat bubble
+          // Post-swap properties (like State=Share reels) are applied after the instance swap
           let sideMatches = variantSide === targetSide;
           let bubbleMatches = variantBubble === targetBubble;
 
-          // If we have variant overrides (like IG content share for reels with State=Share reels)
-          if (hasOverrides && sideMatches) {
-            // Check if all override properties match
-            let overridesMatch = true;
-            for (const [propName, propValue] of Object.entries(variantOverrides)) {
-              if (variantProps[propName] !== propValue) {
-                overridesMatch = false;
-                break;
-              }
-            }
-
-            if (overridesMatch) {
-              // Also check Chat bubble if the variant has it
-              if (variantBubble !== null) {
-                // This component has Chat bubble variants - must also match bubble position
-                if (bubbleMatches) {
-                  console.log(`[MEDIA CHAT]     ✓ MATCH! Side=${variantSide}, Bubble=${variantBubble}, overrides match`);
-                  return child;
-                }
-                // Continue searching for correct bubble position
-              } else {
-                // No Chat bubble in this variant - match on side + overrides only
-                console.log(`[MEDIA CHAT]     ✓ MATCH! Side=${variantSide}, overrides match (no bubble)`);
-                return child;
-              }
-            }
-          } else if (sideMatches && bubbleMatches) {
-            // Standard matching - both side and bubble must match
-            console.log(`[MEDIA CHAT]     ✓ MATCH! Using this variant`);
+          if (sideMatches && bubbleMatches) {
+            console.log(`[MEDIA CHAT]     ✓ MATCH FOUND!`);
             return child;
           }
         }
 
-        console.log(`[MEDIA CHAT] No matching variant found in "${componentSet.name}"`);
+        console.log(`[MEDIA CHAT] No matching variant found. Was looking for Side="${targetSide}", Bubble="${targetBubble}"`);
         return null;
+      }
+
+      // Helper function for case-insensitive name matching
+      function nameMatches(actualName, targetName) {
+        if (!actualName || !targetName) return false;
+        return actualName.toLowerCase().trim() === targetName.toLowerCase().trim();
       }
 
       // Strategy 1: Search preferredValues for the target component set
       if (propDef.preferredValues && Array.isArray(propDef.preferredValues)) {
         console.log(`[MEDIA CHAT] Checking ${propDef.preferredValues.length} preferredValues...`);
 
+        // Log all available component sets in preferredValues for debugging
+        const availableNames = [];
         for (const preferred of propDef.preferredValues) {
           if (preferred.type === 'COMPONENT_SET' && preferred.key) {
             try {
               const importedComponentSet = await figma.importComponentSetByKeyAsync(preferred.key);
               if (importedComponentSet) {
+                availableNames.push(importedComponentSet.name);
                 console.log(`[MEDIA CHAT] Imported component set: "${importedComponentSet.name}" (looking for: "${targetComponentSetName}")`);
-                console.log(`[MEDIA CHAT] Name comparison: "${importedComponentSet.name}" === "${targetComponentSetName}" → ${importedComponentSet.name === targetComponentSetName}`);
 
-                // Check if this is the component set we're looking for
-                if (importedComponentSet.name === targetComponentSetName) {
+                // Use case-insensitive comparison
+                if (nameMatches(importedComponentSet.name, targetComponentSetName)) {
+                  console.log(`[MEDIA CHAT] ✓ Name match found!`);
                   const matchingVariant = findMatchingVariant(importedComponentSet);
                   if (matchingVariant) {
                     nodeId = matchingVariant.id;
@@ -3819,18 +3865,22 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
             }
           }
         }
+        if (!nodeId) {
+          console.log(`[MEDIA CHAT] Available component sets in preferredValues: [${availableNames.join(', ')}]`);
+        }
       }
 
-      // Strategy 2: Search the document for the component set by name
+      // Strategy 2: Search the document for the component set by name (case-insensitive)
       if (!nodeId) {
         console.log(`[MEDIA CHAT] Searching document for component set "${targetComponentSetName}"...`);
 
+        const targetNameLower = targetComponentSetName.toLowerCase().trim();
         const componentSets = figma.root.findAll(n =>
           n.type === 'COMPONENT_SET' &&
-          n.name === targetComponentSetName
+          n.name.toLowerCase().trim() === targetNameLower
         );
 
-        console.log(`[MEDIA CHAT] Found ${componentSets.length} component sets named "${targetComponentSetName}"`);
+        console.log(`[MEDIA CHAT] Found ${componentSets.length} component sets matching "${targetComponentSetName}"`);
 
         for (const componentSet of componentSets) {
           const matchingVariant = findMatchingVariant(componentSet);
@@ -3842,33 +3892,27 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
         }
       }
 
-      // Strategy 3: Search for individual components matching the pattern
+      // Strategy 3: Search for individual components matching the pattern (case-insensitive)
       if (!nodeId) {
         console.log(`[MEDIA CHAT] Searching document for individual components...`);
 
         // Look for components that match our criteria
         const variantOverrides = MEDIA_TYPE_VARIANT_OVERRIDES[mediaType] || {};
         const hasOverrides = Object.keys(variantOverrides).length > 0;
+        const targetNameLower = targetComponentSetName.toLowerCase().trim();
 
         const allComponents = figma.root.findAll(n => {
           if (n.type !== 'COMPONENT') return false;
           if (n.name.toLowerCase().includes('ephemeral')) return false;
 
-          // Check if parent is the component set we want
+          // Check if parent is the component set we want (case-insensitive)
           const parent = n.parent;
-          if (parent && parent.type === 'COMPONENT_SET' && parent.name === targetComponentSetName) {
+          if (parent && parent.type === 'COMPONENT_SET' && parent.name.toLowerCase().trim() === targetNameLower) {
             // Must match To - From
             if (!n.name.includes(`To - From=${targetSide}`)) return false;
 
-            // If we have variant overrides (like State=Share reels), must match those too
-            if (hasOverrides) {
-              for (const [propName, propValue] of Object.entries(variantOverrides)) {
-                if (!n.name.includes(`${propName}=${propValue}`)) return false;
-              }
-            } else {
-              // No overrides - must match Chat bubble
-              if (!n.name.includes(`Chat bubble=${targetBubble}`)) return false;
-            }
+            // Must match Chat bubble (post-swap properties like State are applied after)
+            if (!n.name.includes(`Chat bubble=${targetBubble}`)) return false;
 
             return true;
           }
@@ -3878,6 +3922,12 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
         if (allComponents.length > 0) {
           nodeId = allComponents[0].id;
           console.log(`[MEDIA CHAT] Found component "${allComponents[0].name}" with ID: ${nodeId}`);
+        } else {
+          // Log what component sets ARE available to help debug
+          console.log(`[MEDIA CHAT] No matching components found. Checking what component sets exist...`);
+          const allSets = figma.root.findAll(n => n.type === 'COMPONENT_SET');
+          const setNames = allSets.map(s => s.name).slice(0, 20);
+          console.log(`[MEDIA CHAT] Available component sets (first 20): [${setNames.join(', ')}]`);
         }
       }
 
@@ -4019,6 +4069,76 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
 
           if (igContentShareInstance) {
             console.log('[REELS] Found IG content share instance: "' + igContentShareInstance.name + '"');
+
+            // Apply nested instance configuration (like .XMA type → Type=Reels)
+            const nestedConfig = MEDIA_TYPE_NESTED_INSTANCE_CONFIG[mediaType];
+            if (nestedConfig) {
+              console.log('[REELS] Configuring nested instance "' + nestedConfig.nestedInstanceName + '" with ' + nestedConfig.propertyName + '="' + nestedConfig.propertyValue + '"');
+              try {
+                // Find the nested instance by name
+                function findNestedInstance(node, targetName, depth) {
+                  if (depth > 10) return null;
+
+                  if (node.name === targetName || node.name.toLowerCase() === targetName.toLowerCase()) {
+                    if (node.type === 'INSTANCE') {
+                      return node;
+                    }
+                  }
+
+                  if ('children' in node) {
+                    for (const child of node.children) {
+                      const found = findNestedInstance(child, targetName, depth + 1);
+                      if (found) return found;
+                    }
+                  }
+                  return null;
+                }
+
+                const nestedInstance = findNestedInstance(igContentShareInstance, nestedConfig.nestedInstanceName, 0);
+
+                if (nestedInstance) {
+                  console.log('[REELS] Found nested instance: "' + nestedInstance.name + '"');
+
+                  // Get the component properties and find the matching property key
+                  const nestedProps = nestedInstance.componentProperties;
+                  const nestedPropKeys = Object.keys(nestedProps);
+                  console.log('[REELS] Nested instance properties: ' + nestedPropKeys.join(', '));
+
+                  // Find the property key that matches our target property name
+                  let matchingKey = null;
+                  for (const key of nestedPropKeys) {
+                    const keyBase = key.split('#')[0].trim();
+                    if (keyBase.toLowerCase() === nestedConfig.propertyName.toLowerCase()) {
+                      matchingKey = key;
+                      break;
+                    }
+                  }
+
+                  if (matchingKey) {
+                    console.log('[REELS] Setting "' + matchingKey + '" to "' + nestedConfig.propertyValue + '"');
+                    nestedInstance.setProperties({ [matchingKey]: nestedConfig.propertyValue });
+                    console.log('[REELS] ✓ Nested instance property set successfully!');
+                  } else {
+                    console.log('[REELS] Could not find property "' + nestedConfig.propertyName + '" on nested instance. Available: ' + nestedPropKeys.join(', '));
+                  }
+                } else {
+                  console.log('[REELS] Could not find nested instance "' + nestedConfig.nestedInstanceName + '" inside IG content share');
+
+                  // Log available children for debugging
+                  function logChildren(node, prefix) {
+                    if ('children' in node) {
+                      for (const child of node.children) {
+                        console.log('[REELS]   ' + prefix + child.name + ' (' + child.type + ')');
+                      }
+                    }
+                  }
+                  console.log('[REELS] Available children in IG content share:');
+                  logChildren(igContentShareInstance, '');
+                }
+              } catch (nestedError) {
+                console.log('[REELS] Error configuring nested instance:', nestedError.message);
+              }
+            }
 
             // Pick a random profile from PROFILE_VARIANTS (same logic as Person A selection)
             var randomProfile = PROFILE_VARIANTS[Math.floor(Math.random() * PROFILE_VARIANTS.length)];
@@ -4635,6 +4755,86 @@ function isClippedAtBottom(instance, frameBounds) {
   var instanceY = getAbsoluteY(instance);
   var instanceBottom = instanceY + instance.height;
   return instanceBottom > frameBounds.bottom;
+}
+
+/**
+ * Get the visible bounds of a node, accounting for clipping parents.
+ * This calculates the intersection of the node's bounds with any ancestor
+ * frames that have clipsContent: true, giving us only the visible portion.
+ * @param {SceneNode} node - The node to get visible bounds for
+ * @returns {Object} - { x, y, width, height, clippingParent } of the visible area, plus the clipping parent frame
+ */
+function getVisibleBounds(node) {
+  const nodeBounds = node.absoluteBoundingBox;
+  if (!nodeBounds) {
+    console.log('[VISIBLE BOUNDS] No bounds for node');
+    return null;
+  }
+
+  let visibleBounds = {
+    x: nodeBounds.x,
+    y: nodeBounds.y,
+    width: nodeBounds.width,
+    height: nodeBounds.height,
+    clippingParent: null
+  };
+
+  let parent = node.parent;
+  let clippingParentFound = false;
+
+  while (parent && parent.type !== 'PAGE' && parent.type !== 'DOCUMENT') {
+    if (parent.clipsContent && parent.absoluteBoundingBox) {
+      // Keep track of the innermost (first) clipping parent for sticker placement
+      if (!clippingParentFound) {
+        visibleBounds.clippingParent = parent;
+      }
+      clippingParentFound = true;
+      const clipBounds = parent.absoluteBoundingBox;
+
+      const newX = Math.max(visibleBounds.x, clipBounds.x);
+      const newY = Math.max(visibleBounds.y, clipBounds.y);
+      const newRight = Math.min(visibleBounds.x + visibleBounds.width, clipBounds.x + clipBounds.width);
+      const newBottom = Math.min(visibleBounds.y + visibleBounds.height, clipBounds.y + clipBounds.height);
+
+      visibleBounds.x = newX;
+      visibleBounds.y = newY;
+      visibleBounds.width = Math.max(0, newRight - newX);
+      visibleBounds.height = Math.max(0, newBottom - newY);
+
+      console.log(`[VISIBLE BOUNDS] Clipped by "${parent.name}" → visible area: ${visibleBounds.width.toFixed(0)} x ${visibleBounds.height.toFixed(0)}`);
+    }
+    parent = parent.parent;
+  }
+
+  if (!clippingParentFound) {
+    console.log('[VISIBLE BOUNDS] No clipping parent found, using full bounds');
+  }
+
+  return visibleBounds;
+}
+
+/**
+ * Check if a node is within the visible bounds (at least partially)
+ * @param {SceneNode} node - The node to check
+ * @param {Object} visibleBounds - The visible bounds to check against
+ * @returns {boolean} - True if the node is at least partially visible
+ */
+function isNodeInVisibleBounds(node, visibleBounds) {
+  const nodeBounds = node.absoluteBoundingBox;
+  if (!nodeBounds || !visibleBounds) return false;
+
+  const nodeLeft = nodeBounds.x;
+  const nodeRight = nodeBounds.x + nodeBounds.width;
+  const nodeTop = nodeBounds.y;
+  const nodeBottom = nodeBounds.y + nodeBounds.height;
+
+  const visLeft = visibleBounds.x;
+  const visRight = visibleBounds.x + visibleBounds.width;
+  const visTop = visibleBounds.y;
+  const visBottom = visibleBounds.y + visibleBounds.height;
+
+  return nodeRight > visLeft && nodeLeft < visRight &&
+         nodeBottom > visTop && nodeTop < visBottom;
 }
 
 /**

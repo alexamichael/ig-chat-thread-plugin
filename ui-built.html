@@ -623,6 +623,90 @@
       background-color: #FFFFFF;
     }
 
+    /* Media select with refresh button */
+    .media-select-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 12px;
+    }
+
+    .media-select {
+      width: 192px;
+      padding: 14px 40px 14px 16px;
+      border: 1.5px solid #E5E5EA;
+      border-radius: 12px;
+      font-size: 14px;
+      letter-spacing: -0.15px;
+      font-family: 'SF Pro Text', sans-serif;
+      color: #000000;
+      background: #FFFFFF;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23666666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+    }
+
+    .media-select:focus {
+      outline: none;
+      border-color: #000000;
+      border-width: 2px;
+      background-color: #FFFFFF;
+    }
+
+    .refresh-btn {
+      width: 40px;
+      height: 40px;
+      min-width: 40px;
+      padding: 0;
+      border: 1.5px solid #E5E5EA;
+      border-radius: 12px;
+      background: #FFFFFF;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .refresh-btn:hover {
+      border-color: #4A5DF9;
+      background: rgba(74, 93, 249, 0.05);
+    }
+
+    .refresh-btn:active {
+      transform: scale(0.95);
+    }
+
+    .refresh-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      border-color: #E5E5EA;
+      background: #F5F5F5;
+    }
+
+    .refresh-btn:disabled:hover {
+      border-color: #E5E5EA;
+      background: #F5F5F5;
+    }
+
+    .refresh-btn svg {
+      width: 18px;
+      height: 18px;
+      stroke: #666666;
+      transition: stroke 0.15s ease;
+    }
+
+    .refresh-btn:hover svg {
+      stroke: #4A5DF9;
+    }
+
+    .refresh-btn:disabled svg {
+      stroke: #AAAAAA;
+    }
+
     .subsection-label {
       font-size: 11px;
       color: #888;
@@ -827,12 +911,22 @@
       </div>
       <div class="slider-row" style="margin-top: 16px;">
         <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CjxtYXNrIGlkPSJtYXNrMF8xMzRfMTQiIHN0eWxlPSJtYXNrLXR5cGU6YWxwaGEiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+CjxyZWN0IHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgZmlsbD0idXJsKCNwYXR0ZXJuMF8xMzRfMTQpIi8+CjwvbWFzaz4KPGcgbWFzaz0idXJsKCNtYXNrMF8xMzRfMTQpIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSJibGFjayIvPgo8L2c+CjxkZWZzPgo8cGF0dGVybiBpZD0icGF0dGVybjBfMTM0XzE0IiBwYXR0ZXJuQ29udGVudFVuaXRzPSJvYmplY3RCb3VuZGluZ0JveCIgd2lkdGg9IjEiIGhlaWdodD0iMSI+Cjx1c2UgeGxpbms6aHJlZj0iI2ltYWdlMF8xMzRfMTQiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMjA4MzMzKSIvPgo8L3BhdHRlcm4+CjxpbWFnZSBpZD0iaW1hZ2UwXzEzNF8xNCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIiB4bGluazpocmVmPSJkYXRhOmltYWdlL3BuZztiYXNlNjQsaVZCT1J3MEtHZ29BQUFBTlNVaEVVZ0FBQURBQUFBQXdDQVlBQUFCWEF2bUhBQUFBQVhOU1IwSUFyczRjNlFBQUFFUmxXRWxtVFUwQUtnQUFBQWdBQVlkcEFBUUFBQUFCQUFBQUdnQUFBQUFBQTZBQkFBTUFBQUFCQUFFQUFLQUNBQVFBQUFBQkFBQUFNS0FEQUFRQUFBQUJBQUFBTUFBQUFBRGJOMndNQUFBRFRFbEVRVlJvQmQxWlBZc1VRUkJkRlUzTXhNVEVPUU1UVFFYTnZOUmZJQWVpb2JHcDhlVW1KeWIrQWczRlNBd0VRUlBCeEQrZ25vWXFDb0tjSCsvZGJRMDF0Vk85L1ZITHpsbndycXU2cTE5VnpmWDA5TXpPWnYrcFhFUmQ5NEIzd0hmZ2J5UElRUzV5a250bGNnTE1POEJ2b0RWcGJ6NjVHWU94UW9XRXp3RXZjSFEvWTRVV3dhc1NuZVF5UHNZTUVhNUx1Mncrb0c4TE9CTVFnUnprSXFjdWlqRkQ3Z25lWEpxWWdVNEIwVUpPV3dSak53dDNDRjBBcjVhVm83YWowaWEzanNYWXpXSzNTdjdMUlM1QWVRUHNBUytBczBDTGtGc1h3TmpOb2dtcGEySHlldnlKSHF6VU5aK05WMFhwRVI0REc2KzhIdCt0aWpDY3BQbWFDbGkycnJsTHZCckducjAwOWlUTTFCWHBrT0ZUNERQd0NEZ050RW9xWGhIM2tibTMvVGRLZnhGWmdYTll2R1ZMcUNDbjliaEdGNUI3aXJYVjJpVWxkdllwVmlaSWF3TWNSOGM1Z0x2U21LejlGQ3VKU3l0SjhsNjRDL3dFT1BZTnVBMW9tY1FwVmhLWGxna3krWWVBOU9sMm13NXptY1FwVmlkSFBaVzgrTEtJeVp4aUpTbHB2U3N2NDlLK1JoR2lzMTNiS1ZZbk1hWi9SSExYZ1M4bVllczdkb3JGbEJCSm5tSnRJdHBtOHVmbktWeENteXBDbjJKRHNsWWt5Vk9zVGxqck9ubmhTaFVoUHF0cWRXN1VlN0VEdE1lU2x3bGVFVEkrMWw1QjV3UGdGbEQ3QUxWNTluSHNDODBuak1peTZaMk13aUpjUXVQTEIrRlg1ZjhXK2laUUttNDgrMHA1SjVQWkpUVHpPOWpXbC9aallBUElGY3ZSejZ0OXFYY0plK1lEcFVOamZjWG1VMzRiT0huZ212d3JjNlR0bldzZlNFSWtiVTlvbEE2MitIanRMbnh1QUh5SWVtTG5EdngyWUZtSFVudEFxSXl1Z0p0dmdCdHFybFp0UG5wcy96TWZQL2RacHhKN1FLaU1rZ0lZNzVtYXExV2J5MkE3K3dYUGE4Qjk0SStlZFJoMTNoTzhzYms3MlMzV1hnVnRlN1YyR05CK0tiMTZDWG5CVS8wMkVjODNwd0ErT0p0dVlpOTRxaitpZ0pCdE5KVmthcXkxZ0xBSFdTckoxRmh1QVdOSGlhc3BZbWNzTjU0emZiRzdoUEF5cHZNd2R4TUlPOHlsbm5xTDZTNzJzQUF0clh5YWEweGZpRmQ3SllUOGh5anpkdFV2TkRyY2Z1eldBdDVyUnVpYnhvNDBMYmVOWFJXcjloUmJHbXhsUDAzVm5tSnpDK0NTM0FMczcycGhQdzR5a1loVHJOM05sdG1NR1NhVCtMVFlXczNhUCs2MkZpRHphMCt4M3BMSi9yd3VDUnk2OWgrQW54Y05UMWE5THdBQUFBQkpSVTVFcmtKZ2dnPT0iLz4KPC9kZWZzPgo8L3N2Zz4K" alt="Media" class="slider-icon">
-        <select id="media-select" class="gradient-select">
-          <option value="none" selected>No media</option>
-          <option value="media-chat">Media chat</option>
-          <option value="reels">Reels</option>
-          <option value="both">Both</option>
-        </select>
+        <div class="media-select-container">
+          <select id="media-select" class="media-select">
+            <option value="none" selected>No media</option>
+            <option value="media-chat">Media chat</option>
+            <option value="reels">Reels</option>
+            <option value="both">Both</option>
+          </select>
+          <button id="media-refresh-btn" class="refresh-btn" disabled title="Shuffle media content">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 2v6h-6"></path>
+              <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+              <path d="M3 22v-6h6"></path>
+              <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -1665,6 +1759,41 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
         }, '*');
         showStatus('Applying Media chat and Reels...', 'info');
       }
+    });
+
+    // Refresh button handler - shuffles media content without changing placement
+    const mediaRefreshBtn = document.getElementById('media-refresh-btn');
+
+    // Function to update refresh button state based on media selection
+    function updateRefreshButtonState() {
+      const value = mediaSelect.value;
+      mediaRefreshBtn.disabled = (value === 'none');
+    }
+
+    // Update button state when media selection changes
+    mediaSelect.addEventListener('change', updateRefreshButtonState);
+
+    // Handle refresh button click
+    mediaRefreshBtn.addEventListener('click', () => {
+      const value = mediaSelect.value;
+      if (value === 'none') return;
+
+      let mediaTypes = [];
+      if (value === 'media-chat') {
+        mediaTypes = ['media-chat'];
+      } else if (value === 'reels') {
+        mediaTypes = ['reels'];
+      } else if (value === 'both') {
+        mediaTypes = ['media-chat', 'reels'];
+      }
+
+      parent.postMessage({
+        pluginMessage: {
+          type: 'shuffle-media-content',
+          mediaTypes: mediaTypes
+        }
+      }, '*');
+      showStatus('Shuffling media content...', 'info');
     });
 
     window.addEventListener('focus', () => {

@@ -3411,9 +3411,393 @@ function findSwappableParent(textChatNode) {
     }
     parent = parent.parent;
     depth++;
+    return textChatNode.parent;
   }
 
   return textChatNode.parent;
+}
+
+/**
+ * Shuffle media content in existing Media chat and IG content share instances
+ * Does NOT change placement - only shuffles background images and text
+ * @param {SceneNode} threadNode - The chat thread node
+ * @param {string[]} mediaTypes - Array of media types to shuffle ['media-chat', 'reels']
+ * @returns {Object} - { shuffled: number }
+ */
+async function shuffleMediaContent(threadNode, mediaTypes) {
+  console.log(`[SHUFFLE] Shuffling content for types:`, mediaTypes);
+  console.log(`[SHUFFLE] Thread node: "${threadNode.name}" (type: ${threadNode.type})`);
+
+  // Debug: List immediate children and their instance names to help diagnose
+  function debugListChildren(node, prefix = '', maxDepth = 5, currentDepth = 0) {
+    if (currentDepth > maxDepth) return;
+    if ('children' in node) {
+      for (const child of node.children) {
+        const typeLabel = child.type === 'INSTANCE' ? `INSTANCE` : child.type;
+        if (child.type === 'INSTANCE' || child.type === 'FRAME' || child.type === 'GROUP') {
+          console.log(`[SHUFFLE] ${prefix}├─ "${child.name}" (${typeLabel})`);
+          debugListChildren(child, prefix + '│  ', maxDepth, currentDepth + 1);
+        }
+      }
+    }
+  }
+
+  console.log(`[SHUFFLE] --- Thread structure (first 5 levels) ---`);
+  debugListChildren(threadNode, '', 5, 0);
+  console.log(`[SHUFFLE] --- End structure ---`);
+
+  let shuffledCount = 0;
+
+  // Helper to get a random image from all categories
+  function getRandomImage(imageSet) {
+    const allImages = [];
+    for (const category in imageSet) {
+      if (imageSet[category] && imageSet[category].length > 0) {
+        allImages.push(...imageSet[category]);
+      }
+    }
+    if (allImages.length === 0) return null;
+    return allImages[Math.floor(Math.random() * allImages.length)];
+  }
+
+  // Helper to find Media chat instances recursively
+  function findMediaChatInstances(node, results = [], depth = 0) {
+    if (depth > 20) return results; // Increased depth
+    if (node.type === 'INSTANCE') {
+      const nodeName = node.name.toLowerCase();
+      // More flexible matching
+      if (nodeName === 'media chat' ||
+          nodeName.includes('media chat') ||
+          nodeName === 'mediachat' ||
+          nodeName.includes('media-chat')) {
+        console.log(`[SHUFFLE] Found Media chat: "${node.name}" at depth ${depth}`);
+        results.push(node);
+      }
+    }
+    if ('children' in node) {
+      for (const child of node.children) {
+        findMediaChatInstances(child, results, depth + 1);
+      }
+    }
+    return results;
+  }
+
+  // Helper to find IG content share instances recursively
+  function findIGContentShareInstances(node, results = [], depth = 0) {
+    if (depth > 20) return results; // Increased depth
+    if (node.type === 'INSTANCE') {
+      const nodeName = node.name.toLowerCase();
+      // More flexible matching for IG content share / Reels
+      if (nodeName === 'ig content share' ||
+          nodeName.includes('ig content share') ||
+          nodeName === 'igcontentshare' ||
+          nodeName.includes('reels') ||
+          nodeName === '.xma' ||
+          nodeName.includes('content share')) {
+        console.log(`[SHUFFLE] Found IG content share/Reels: "${node.name}" at depth ${depth}`);
+        results.push(node);
+      }
+    }
+    if ('children' in node) {
+      for (const child of node.children) {
+        findIGContentShareInstances(child, results, depth + 1);
+      }
+    }
+    return results;
+  }
+
+  // Helper to find .Aspect ratio node inside a component (same logic as applyImageToMediaChat/Reels)
+  function findAspectRatioNode(parentNode) {
+    let aspectRatioNode = null;
+    function search(node, depth) {
+      if (depth > 15 || aspectRatioNode) return;
+      const name = node.name;
+      if (name === '.Aspect ratio' || name.startsWith('.Aspect ratio')) {
+        aspectRatioNode = node;
+        return;
+      }
+      if ('children' in node) {
+        for (const child of node.children) {
+          search(child, depth + 1);
+        }
+      }
+    }
+    search(parentNode, 0);
+    return aspectRatioNode;
+  }
+
+  // Helper to find the aspect ratio frame that has the image fill
+  function findAspectRatioFrame(aspectRatioNode) {
+    const aspectRatioPatterns = ['4:3', '16:9', '1:1', '9:16', '3:4', '2:3', '3:2'];
+    let aspectRatioFrame = null;
+
+    if ('children' in aspectRatioNode) {
+      // First, look for named aspect ratio frames
+      for (const child of aspectRatioNode.children) {
+        const childName = child.name;
+        if (aspectRatioPatterns.includes(childName) || childName.match(/^\d+:\d+$/)) {
+          if (child.visible !== false) {
+            aspectRatioFrame = child;
+            break;
+          }
+        }
+      }
+
+      // Fallback: find first suitable frame/rectangle child
+      if (!aspectRatioFrame) {
+        for (const child of aspectRatioNode.children) {
+          if ((child.type === 'FRAME' || child.type === 'RECTANGLE') &&
+              child.visible !== false &&
+              !child.name.toLowerCase().includes('button') &&
+              !child.name.toLowerCase().includes('play')) {
+            aspectRatioFrame = child;
+            break;
+          }
+        }
+      }
+    }
+
+    // Fallback: use the aspect ratio node itself if it has fills
+    if (!aspectRatioFrame && 'fills' in aspectRatioNode) {
+      aspectRatioFrame = aspectRatioNode;
+    }
+
+    return aspectRatioFrame;
+  }
+
+  // Helper to apply image to a media component using the same logic as applyImageToMediaChat/Reels
+  async function applyImageToComponent(componentNode, imageUrl) {
+    if (!componentNode || !imageUrl) return false;
+
+    try {
+      // Find .Aspect ratio node
+      const aspectRatioNode = findAspectRatioNode(componentNode);
+      if (!aspectRatioNode) {
+        console.log('[SHUFFLE] .Aspect ratio not found in component');
+        return false;
+      }
+
+      // Find the frame to apply the image to
+      const aspectRatioFrame = findAspectRatioFrame(aspectRatioNode);
+      if (!aspectRatioFrame) {
+        console.log('[SHUFFLE] Could not find aspect ratio frame to fill');
+        return false;
+      }
+
+      // Fetch and apply the image using figma.createImageAsync
+      const image = await figma.createImageAsync(imageUrl);
+      console.log('[SHUFFLE] Image fetched, hash: ' + image.hash);
+
+      if ('fills' in aspectRatioFrame) {
+        aspectRatioFrame.fills = [{
+          type: 'IMAGE',
+          scaleMode: 'FILL',
+          imageHash: image.hash
+        }];
+        return true;
+      }
+    } catch (error) {
+      console.log('[SHUFFLE] Error applying image:', error.message);
+    }
+    return false;
+  }
+
+  // Helper to find and update profile/username in Reels
+  async function shuffleReelsProfile(igContentShareNode) {
+    const randomProfile = PROFILE_VARIANTS[Math.floor(Math.random() * PROFILE_VARIANTS.length)];
+    let profilesUpdated = 0;
+    let usernameUpdated = false;
+
+    console.log(`[SHUFFLE] Shuffling Reels profile to "${randomProfile}"`);
+
+    // Helper function to find and update Person instance inside a Profile photo
+    function updatePersonInProfilePhoto(profilePhotoNode) {
+      let updated = false;
+
+      function findPerson(node, depth) {
+        if (depth > 5 || updated) return;
+
+        if (node.type === 'INSTANCE' && node.name === 'Person') {
+          try {
+            const props = node.componentProperties;
+            const propKeys = Object.keys(props);
+            console.log(`[SHUFFLE] Found Person instance with props: ${propKeys.join(', ')}`);
+
+            for (const key of propKeys) {
+              const keyLower = key.toLowerCase();
+              if (keyLower.includes('handle') || keyLower.includes('variant') || keyLower.includes('user')) {
+                console.log(`[SHUFFLE] Setting Person "${key}" to "${randomProfile}"`);
+                node.setProperties({ [key]: randomProfile });
+                console.log(`[SHUFFLE] ✓ Updated Person handle to "${randomProfile}"`);
+                updated = true;
+                return;
+              }
+            }
+          } catch (e) {
+            console.log(`[SHUFFLE] Error updating Person: ${e.message}`);
+          }
+        }
+
+        if ('children' in node) {
+          for (const child of node.children) {
+            findPerson(child, depth + 1);
+          }
+        }
+      }
+
+      findPerson(profilePhotoNode, 0);
+      return updated;
+    }
+
+    async function processNode(node, depth) {
+      if (depth > 15) return;
+
+      const nodeName = node.name;
+      const nodeNameLower = nodeName.toLowerCase();
+
+      // Look for Profile photo components and update the nested Person inside them
+      if (node.type === 'INSTANCE') {
+        const isProfilePhoto = nodeName === 'Profile photo' ||
+                               nodeName === '.Profile photo' ||
+                               nodeNameLower === 'profile photo';
+
+        if (isProfilePhoto) {
+          console.log(`[SHUFFLE] Found Profile photo component at depth ${depth}`);
+
+          // First try to find Handle directly on this component
+          try {
+            const props = node.componentProperties;
+            const propKeys = Object.keys(props);
+            let hasHandle = false;
+
+            for (const key of propKeys) {
+              const keyLower = key.toLowerCase();
+              if (keyLower.includes('handle')) {
+                console.log(`[SHUFFLE] Setting "${key}" to "${randomProfile}" on Profile photo`);
+                node.setProperties({ [key]: randomProfile });
+                profilesUpdated++;
+                hasHandle = true;
+                console.log(`[SHUFFLE] ✓ Updated Profile photo handle`);
+                break;
+              }
+            }
+
+            // If no Handle on Profile photo, look for nested Person instance
+            if (!hasHandle) {
+              console.log(`[SHUFFLE] No Handle on Profile photo, searching for nested Person...`);
+              if (updatePersonInProfilePhoto(node)) {
+                profilesUpdated++;
+              }
+            }
+          } catch (e) {
+            console.log(`[SHUFFLE] Error with Profile photo: ${e.message}`);
+          }
+        }
+
+        // Also look for .People profile pictures (different component type)
+        const isPeopleProfile = nodeName === '.People profile pictures' ||
+                                nodeNameLower.includes('people profile pictures');
+        if (isPeopleProfile) {
+          try {
+            const props = node.componentProperties;
+            const propKeys = Object.keys(props);
+            for (const key of propKeys) {
+              if (key.toLowerCase().includes('handle')) {
+                node.setProperties({ [key]: randomProfile });
+                profilesUpdated++;
+                console.log(`[SHUFFLE] ✓ Updated .People profile pictures handle`);
+                break;
+              }
+            }
+          } catch (e) {
+            console.log(`[SHUFFLE] Error with .People profile pictures: ${e.message}`);
+          }
+        }
+      }
+
+      // Look for username/title text nodes
+      if (node.type === 'TEXT' && 'characters' in node && !usernameUpdated) {
+        const isUsernameNode = nodeNameLower === 'title' ||
+                               nodeName === 'Title' ||
+                               nodeNameLower.includes('username');
+        if (isUsernameNode) {
+          try {
+            await figma.loadFontAsync(node.fontName);
+            node.characters = randomProfile;
+            console.log(`[SHUFFLE] ✓ Set username text to "${randomProfile}"`);
+            usernameUpdated = true;
+          } catch (fontError) {
+            console.log('[SHUFFLE] Could not change username text:', fontError.message);
+          }
+        }
+      }
+
+      if ('children' in node) {
+        for (const child of node.children) {
+          await processNode(child, depth + 1);
+        }
+      }
+    }
+
+    await processNode(igContentShareNode, 0);
+
+    // Log result
+    if (profilesUpdated > 0 && usernameUpdated) {
+      console.log(`[SHUFFLE] ✓ Updated ${profilesUpdated} profile photo(s) AND username to "${randomProfile}"`);
+    } else if (usernameUpdated) {
+      console.log(`[SHUFFLE] ⚠ Username updated but no profile photos found`);
+    } else if (profilesUpdated > 0) {
+      console.log(`[SHUFFLE] ⚠ ${profilesUpdated} profile photo(s) updated but username text not found`);
+    } else {
+      console.log(`[SHUFFLE] ✗ Neither profile photo nor username could be updated`);
+    }
+
+    return profilesUpdated > 0 || usernameUpdated;
+  }
+
+  // Process Media chat components
+  if (mediaTypes.includes('media-chat')) {
+    const mediaChats = findMediaChatInstances(threadNode);
+    console.log(`[SHUFFLE] Found ${mediaChats.length} Media chat instances`);
+
+    for (const mediaChat of mediaChats) {
+      const newImageUrl = getRandomImage(MEDIA_IMAGES);
+      if (newImageUrl) {
+        const success = await applyImageToComponent(mediaChat, newImageUrl);
+        if (success) {
+          shuffledCount++;
+          console.log(`[SHUFFLE] Shuffled Media chat image in "${mediaChat.name}"`);
+        }
+      }
+    }
+  }
+
+  // Process IG content share (Reels) components
+  if (mediaTypes.includes('reels')) {
+    const igContentShares = findIGContentShareInstances(threadNode);
+    console.log(`[SHUFFLE] Found ${igContentShares.length} IG content share instances`);
+
+    for (const igShare of igContentShares) {
+      // Shuffle the background image
+      const newImageUrl = getRandomImage(REELS_IMAGES);
+      if (newImageUrl) {
+        const success = await applyImageToComponent(igShare, newImageUrl);
+        if (success) {
+          shuffledCount++;
+          console.log(`[SHUFFLE] Shuffled Reels image in "${igShare.name}"`);
+        }
+      }
+
+      // Shuffle the profile photo and username
+      const profileSuccess = await shuffleReelsProfile(igShare);
+      if (profileSuccess) {
+        shuffledCount++;
+      }
+    }
+  }
+
+  console.log(`[SHUFFLE] Completed - shuffled ${shuffledCount} items`);
+  return { shuffled: shuffledCount };
 }
 
 /**
@@ -3977,12 +4361,29 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
       console.log(`[MEDIA CHAT] ✓ Swapped Chat block ${index} to ${mediaType}`);
       appliedCount++;
 
+      // IMPORTANT: Add a small delay to allow Figma to update the node tree after the swap
+      // Without this, the swapped-in component might not be discoverable yet
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       // Now find the Media chat instance we just swapped in and apply image
       if (mediaType === 'media-chat') {
         try {
           // Find the Media chat instance within the Chat block
           // Look for "Media chat" instance - could be direct child or nested
+          // Also check by the property value we just set (nodeId)
           var mediaChatInstance = null;
+
+          // First try to get the instance directly via the node ID we just set
+          try {
+            const directInstance = await figma.getNodeByIdAsync(nodeId);
+            if (directInstance && directInstance.type === 'COMPONENT') {
+              // The nodeId points to the component, need to find the instance in the tree
+              console.log('[MEDIA CHAT] Direct node is component, searching tree...');
+            }
+          } catch (e) {
+            // Ignore - fallback to tree search
+          }
+
           function findMediaChat(node, depth) {
             if (depth > 10) return null;
             // Check if this node is a Media chat instance
@@ -3991,6 +4392,19 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
               if (nodeName === 'media chat' || nodeName.includes('media chat')) {
                 console.log('[MEDIA CHAT] Found instance: "' + node.name + '" at depth ' + depth);
                 return node;
+              }
+              // IMPORTANT: After INSTANCE_SWAP, node.name does NOT update!
+              // We must check mainComponent.parent.name (the component SET name) instead
+              try {
+                if (node.mainComponent && node.mainComponent.parent) {
+                  var componentSetName = node.mainComponent.parent.name.toLowerCase();
+                  if (componentSetName === 'media chat' || componentSetName.includes('media chat')) {
+                    console.log('[MEDIA CHAT] Found instance by component set name: "' + node.mainComponent.parent.name + '" (node.name="' + node.name + '") at depth ' + depth);
+                    return node;
+                  }
+                }
+              } catch (e) {
+                console.log('[MEDIA CHAT] Error checking mainComponent.parent: ' + e.message);
               }
             }
             if ('children' in node) {
@@ -4003,7 +4417,19 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
           }
 
           console.log('[MEDIA CHAT] Searching for Media chat instance in Chat block "' + chatBlock.name + '"...');
-          mediaChatInstance = findMediaChat(chatBlock, 0);
+
+          // Retry mechanism - Figma sometimes needs more time to update the tree after swap
+          // Mid positions in multi-bubble blocks need longer delays
+          var maxRetries = 5;
+          var retryDelays = [0, 100, 200, 400, 800];
+
+          for (var retry = 0; retry < maxRetries && !mediaChatInstance; retry++) {
+            if (retry > 0) {
+              console.log('[MEDIA CHAT] Retry ' + retry + '/' + (maxRetries - 1) + ' after ' + retryDelays[retry] + 'ms delay...');
+              await new Promise(function(resolve) { setTimeout(resolve, retryDelays[retry]); });
+            }
+            mediaChatInstance = findMediaChat(chatBlock, 0);
+          }
 
           if (mediaChatInstance) {
             console.log('[MEDIA CHAT] Found Media chat instance: "' + mediaChatInstance.name + '"');
@@ -4044,15 +4470,31 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
       if (mediaType === 'reels') {
         try {
           // Find the IG content share instance within the Chat block
+          // Use retry mechanism since Figma may need time to update the tree after swap
           var igContentShareInstance = null;
+
           function findIGContentShare(node, depth) {
-            if (depth > 10) return null;
+            if (depth > 15) return null;
             if (node.type === 'INSTANCE') {
               var nodeName = node.name.toLowerCase();
-              if (nodeName === 'ig content share' || nodeName.includes('ig content share')) {
+              if (nodeName === 'ig content share' || nodeName.includes('ig content share') || nodeName.includes('content share')) {
                 console.log('[REELS] Found instance: "' + node.name + '" at depth ' + depth);
                 return node;
               }
+              // Also check if this instance's mainComponent matches our target
+              try {
+                if (node.mainComponent && node.mainComponent.id === nodeId) {
+                  console.log('[REELS] Found instance by mainComponent ID: "' + node.name + '" at depth ' + depth);
+                  return node;
+                }
+                // Check if mainComponent's parent (component set) is "IG content share"
+                if (node.mainComponent && node.mainComponent.parent &&
+                    node.mainComponent.parent.name &&
+                    node.mainComponent.parent.name.toLowerCase().includes('ig content share')) {
+                  console.log('[REELS] Found instance by parent component set: "' + node.name + '" at depth ' + depth);
+                  return node;
+                }
+              } catch (e) {}
             }
             if ('children' in node) {
               for (var c = 0; c < node.children.length; c++) {
@@ -4065,7 +4507,18 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
 
           console.log('[REELS] Searching for IG content share instance in Chat block "' + chatBlock.name + '"...');
 
-          igContentShareInstance = findIGContentShare(chatBlock, 0);
+          // Retry mechanism - Figma sometimes needs more time to update the tree after swap
+          // Mid positions in multi-bubble blocks need longer delays
+          const maxRetries = 5;
+          const retryDelays = [0, 100, 200, 400, 800]; // Try immediately, then with increasing delays
+
+          for (let retry = 0; retry < maxRetries && !igContentShareInstance; retry++) {
+            if (retry > 0) {
+              console.log(`[REELS] Retry ${retry}/${maxRetries - 1} after ${retryDelays[retry]}ms delay...`);
+              await new Promise(resolve => setTimeout(resolve, retryDelays[retry]));
+            }
+            igContentShareInstance = findIGContentShare(chatBlock, 0);
+          }
 
           if (igContentShareInstance) {
             console.log('[REELS] Found IG content share instance: "' + igContentShareInstance.name + '"');
@@ -4200,14 +4653,7 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
                       console.log('[REELS] ✓ Set username text to "' + randomProfile + '"');
                       usernameSet = true;
                     } catch (fontError) {
-                      console.log('[REELS] Font load error, trying without:', fontError.message);
-                      try {
-                        node.characters = randomProfile;
-                        console.log('[REELS] ✓ Set username text to "' + randomProfile + '" (without font load)');
-                        usernameSet = true;
-                      } catch (e2) {
-                        console.log('[REELS] Could not update username text:', e2.message);
-                      }
+                      console.log('[REELS] Could not change username text:', fontError.message);
                     }
                   }
                 }
@@ -5227,6 +5673,39 @@ figma.ui.onmessage = async (msg) => {
       figma.ui.postMessage({
         type: 'error',
         message: `Error applying media chat: ${error.message}`
+      });
+    }
+    return;
+  }
+
+  if (msg.type === 'shuffle-media-content') {
+    const selection = figma.currentPage.selection;
+
+    if (selection.length === 0) {
+      figma.ui.postMessage({
+        type: 'error',
+        message: 'Please select a Chat Thread component first'
+      });
+      return;
+    }
+
+    const threadNode = selection[0];
+    const mediaTypes = msg.mediaTypes || [];
+
+    console.log(`[SHUFFLE] Shuffling media content for types:`, mediaTypes);
+
+    try {
+      const result = await shuffleMediaContent(threadNode, mediaTypes);
+
+      figma.ui.postMessage({
+        type: 'success',
+        message: `Shuffled ${result.shuffled} media items`
+      });
+    } catch (error) {
+      console.log(`[SHUFFLE] Error:`, error.message);
+      figma.ui.postMessage({
+        type: 'error',
+        message: `Error shuffling media: ${error.message}`
       });
     }
     return;

@@ -4428,7 +4428,7 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
               console.log('[MEDIA CHAT] Retry ' + retry + '/' + (maxRetries - 1) + ' after ' + retryDelays[retry] + 'ms delay...');
               await new Promise(function(resolve) { setTimeout(resolve, retryDelays[retry]); });
             }
-            mediaChatInstance = findMediaChat(chatBlock, 0);
+            mediaChatInstance = await findMediaChat(chatBlock, 0);
           }
 
           if (mediaChatInstance) {
@@ -4637,24 +4637,18 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
                 }
               }
 
-              // Look for Title text node to update the username text
-              // Path is: IG content share > XMA > .Media header > Text > Title text > Title
-              if (node.type === 'TEXT' && !usernameSet) {
-                // Check if this is the Title text node (exact name match preferred)
-                if (nodeNameLower === 'title' || nodeName === 'Title') {
-                  var textContent = node.characters || '';
-                  console.log('[REELS] Found Title text node with content: "' + textContent + '"');
-
-                  // Only update if it looks like a username (short text, no spaces typically)
-                  if (textContent.length > 0 && textContent.length < 50) {
-                    try {
-                      await figma.loadFontAsync(node.fontName);
-                      node.characters = randomProfile;
-                      console.log('[REELS] ✓ Set username text to "' + randomProfile + '"');
-                      usernameSet = true;
-                    } catch (fontError) {
-                      console.log('[REELS] Could not change username text:', fontError.message);
-                    }
+              // Look for Title text node to set the username text
+              if (node.type === 'TEXT') {
+                var textNameLower = nodeName.toLowerCase();
+                if (textNameLower.includes('title') || textNameLower === 'username') {
+                  try {
+                    console.log('[REELS] Found text node "' + nodeName + '" - setting to "' + randomProfile + '"');
+                    await figma.loadFontAsync(node.fontName);
+                    node.characters = randomProfile;
+                    console.log('[REELS] ✓ Set username text to "' + randomProfile + '"');
+                    usernameSet = true;
+                  } catch (e) {
+                    console.log('[REELS] Could not set username text:', e.message);
                   }
                 }
               }
@@ -4687,29 +4681,29 @@ async function applyMediaChatToThread(threadNode, percentage, mediaTypes) {
                   }
                 }
                 logChildren(igContentShareInstance, '');
-              }
-
-              // Apply random Reels image to the IG content share .Aspect ratio
-              try {
-                console.log('[REELS] Applying background image to IG content share...');
-                var reelsImageUrl = pickReelsImage(usedImagesInThread);
-                if (reelsImageUrl) {
-                  usedImagesInThread.add(reelsImageUrl); // Track this image as used
-                  console.log('[REELS] Selected image URL: ' + reelsImageUrl.substring(0, 60) + '...');
-                  await applyImageToReels(igContentShareInstance, reelsImageUrl);
-                  console.log('[REELS] ✓ Background image applied');
-                } else {
-                  console.log('[REELS] No image URL returned, skipping image application');
-                }
-              } catch (reelsImageError) {
-                console.log('[REELS] Error applying image: ' + (reelsImageError.message || reelsImageError));
-              }
-            } else {
-              console.log('[REELS] Could not find IG content share instance within Chat block');
             }
-          } catch (reelsError) {
-            console.log('[REELS] Error setting profile: ' + (reelsError.message || reelsError));
+
+            // Apply random Reels image to the IG content share .Aspect ratio
+            try {
+              console.log('[REELS] Applying background image to IG content share...');
+              var reelsImageUrl = pickReelsImage(usedImagesInThread);
+              if (reelsImageUrl) {
+                usedImagesInThread.add(reelsImageUrl); // Track this image as used
+                console.log('[REELS] Selected image URL: ' + reelsImageUrl.substring(0, 60) + '...');
+                await applyImageToReels(igContentShareInstance, reelsImageUrl);
+                console.log('[REELS] ✓ Background image applied');
+              } else {
+                console.log('[REELS] No image URL returned, skipping image application');
+              }
+            } catch (reelsImageError) {
+              console.log('[REELS] Error applying image: ' + (reelsImageError.message || reelsImageError));
+            }
+          } else {
+            console.log('[REELS] Could not find IG content share instance within Chat block');
           }
+        } catch (reelsError) {
+          console.log('[REELS] Error setting profile: ' + (reelsError.message || reelsError));
+        }
 
           // Handle Eyebrow text for Reels - only show in group chats (3+ people)
           try {

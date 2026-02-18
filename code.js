@@ -64,6 +64,39 @@ const EMOJI_COMPONENT_KEYS = {
   'Face with Tears of Joy': '1a7453323b4a23490c0569f88f2e1ec33d832aca'
 };
 
+// Cache for imported emoji component IDs (maps component key → node ID)
+// This is populated by preloadEmojiComponents() at startup
+const EMOJI_COMPONENT_IDS = new Map();
+
+/**
+ * Pre-import all emoji components and cache their node IDs
+ * This should be called once at plugin startup
+ * @returns {Promise<number>} Number of emoji components successfully imported
+ */
+async function preloadEmojiComponents() {
+  console.log('[EMOJI PRELOAD] Starting emoji component preload...');
+  let loadedCount = 0;
+
+  for (const [name, key] of Object.entries(EMOJI_COMPONENT_KEYS)) {
+    try {
+      const component = await figma.importComponentByKeyAsync(key);
+      if (component) {
+        EMOJI_COMPONENT_IDS.set(key, component.id);
+        console.log(`[EMOJI PRELOAD] ✓ Loaded "${name}" → ${component.id}`);
+        loadedCount++;
+      }
+    } catch (e) {
+      console.log(`[EMOJI PRELOAD] ✗ Failed to load "${name}": ${e.message}`);
+    }
+  }
+
+  console.log(`[EMOJI PRELOAD] Complete! Loaded ${loadedCount}/${Object.keys(EMOJI_COMPONENT_KEYS).length} emoji components`);
+  return loadedCount;
+}
+
+// Preload emoji components when plugin starts
+preloadEmojiComponents();
+
 // ============================================================================
 // STICKER COMPONENT KEYS
 // Hard-coded component keys from the IGD-Sticker-Packs library
@@ -2690,11 +2723,27 @@ function setChatReactionVariant(textChatNode, isGroupChat = false, emojiList = [
 
           if (foundKey) {
             console.log(`[EMOJI SWAP] Found matching key for "${foundName}": ${foundKey}`);
-            try {
-              chatReactionNode.setProperties({ [key]: foundKey });
-              console.log(`[EMOJI SWAP] ✓ Successfully set ${key} to ${foundKey}`);
-            } catch (e) {
-              console.log(`[EMOJI SWAP] ✗ Failed to set property:`, e.message);
+
+            // Look up the preloaded component ID from our cache
+            // EMOJI_COMPONENT_IDS maps component key → node ID
+            const componentId = EMOJI_COMPONENT_IDS.get(foundKey);
+
+            if (componentId) {
+              try {
+                chatReactionNode.setProperties({ [key]: componentId });
+                console.log(`[EMOJI SWAP] ✓ Successfully set ${key} to component ID ${componentId}`);
+              } catch (e) {
+                console.log(`[EMOJI SWAP] ✗ Failed to set property:`, e.message);
+              }
+            } else {
+              console.log(`[EMOJI SWAP] ✗ Component not preloaded for key: ${foundKey}`);
+              // Fallback: try using the key directly (may not work for library components)
+              try {
+                chatReactionNode.setProperties({ [key]: foundKey });
+                console.log(`[EMOJI SWAP] ⚠ Fallback: tried setting key directly`);
+              } catch (e) {
+                console.log(`[EMOJI SWAP] ✗ Fallback also failed:`, e.message);
+              }
             }
           } else {
             console.log(`[EMOJI SWAP] ✗ No matching key found for "${targetEmojiName}"`);

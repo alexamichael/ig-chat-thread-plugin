@@ -1937,7 +1937,7 @@ function pickContextualEmojiFromAvailable(messageText, emojiMap) {
     'purple': ['purple', 'fave', 'favorite', 'bestie', 'bff', 'always', 'forever', 'queen', 'slay', 'iconic'],
     'thumbs': ['ok', 'okay', 'sure', 'yes', 'yep', 'yeah', 'good', 'cool', 'nice', 'great', 'sounds', 'bet', 'works', 'done', 'got it', 'agree', 'down', 'perfect', 'fine', 'alright', 'np', 'no problem', 'kk', 'k'],
     'grinning': ['lol', 'haha', 'hehe', 'funny', 'hilarious', 'joke', 'laugh', 'silly', 'goofy', ':)', '😊', 'happy', 'yay', 'excited'],
-    'joy': ['lol', 'lmao', 'haha', 'hahaha', 'hilarious', 'funny', 'dead', 'dying', 'crying', 'joke', 'omg', 'bruh', 'bro', 'stop', 'im dead', "i'm dead", 'wheeze', '😂', 'jk', 'kidding', 'rofl'],
+    'joy': ['lol', 'lmao', 'haha', 'hahaha', 'hilarious', 'funny', 'dead', 'dying', 'crying', 'joke', 'omg', 'bruh', 'bro', 'stop', 'im dead', "i'm dead", 'wheeze', '😂', 'jk', 'kidding', 'rofl', 'happy', 'excited', 'yay', 'amazing', 'so good', 'the best', 'love it', 'love this'],
     'fire': ['fire', 'hot', 'lit', 'amazing', 'insane', 'crazy', 'sick', 'dope', 'slay', 'ate', 'served', 'heat', 'flames', 'killing it', 'goat', 'legendary', 'epic', 'wild', 'bussin'],
     'crying': ['sad', 'cry', 'crying', 'sob', 'miss you', 'ugh', 'hate', 'worst', 'terrible', 'awful', 'depressed', 'lonely', 'pain', 'hurt'],
     'pouting': ['mad', 'angry', 'annoyed', 'frustrated', 'ugh', 'hate', 'annoying', 'irritated', 'pissed', 'wtf', 'seriously', 'really'],

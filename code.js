@@ -3355,6 +3355,10 @@ async function applyStickersToThread(threadNode, percentage) {
       const rotation = pickRandomRotation();
       stickerInstance.rotation = rotation;
 
+      // Name the sticker for easy identification (must be set before appending
+      // so that removal can always find it even if a later step throws)
+      stickerInstance.name = `Sticker - ${sticker.name}`;
+
       // Add to parent (or page if we can't add to instance)
       if (stickerParent.type !== 'INSTANCE' && 'appendChild' in stickerParent) {
         stickerParent.appendChild(stickerInstance);
@@ -3366,12 +3370,11 @@ async function applyStickersToThread(threadNode, percentage) {
         stickerInstance.y = stickerY;
       }
 
-      // Set to absolute positioning (ignore auto layout)
-      // This ensures stickers float on top without affecting the chat thread layout
-      stickerInstance.layoutPositioning = "ABSOLUTE";
-
-      // Name the sticker for easy identification
-      stickerInstance.name = `Sticker - ${sticker.name}`;
+      // Set to absolute positioning when parent uses auto layout,
+      // so stickers float on top without affecting the chat thread layout
+      if (stickerParent.layoutMode && stickerParent.layoutMode !== 'NONE') {
+        stickerInstance.layoutPositioning = "ABSOLUTE";
+      }
 
       console.log(`[STICKER] ✓ Placed "${sticker.name}" at (${stickerInstance.x.toFixed(0)}, ${stickerInstance.y.toFixed(0)}) rotation: ${rotation}°`);
       appliedCount++;
@@ -3400,9 +3403,7 @@ function removeStickersFromThread(threadNode) {
   searchRoots.push(figma.currentPage);
 
   for (const root of searchRoots) {
-    function search(node, depth = 0) {
-      if (depth > 3) return;
-
+    function search(node) {
       if (node.name.startsWith('Sticker - ')) {
         stickersToRemove.push(node);
         return; // Don't search inside stickers
@@ -3410,7 +3411,7 @@ function removeStickersFromThread(threadNode) {
 
       if ('children' in node) {
         for (const child of node.children) {
-          search(child, depth + 1);
+          search(child);
         }
       }
     }

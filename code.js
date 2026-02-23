@@ -2721,39 +2721,30 @@ function setChatReactionVariant(textChatNode, isGroupChat = false, emojiList = [
       reactionCount = isGroupChat ? Math.floor(Math.random() * 2) + 1 : 1;
       chatReactionNode.setProperties({ [reactionsKey]: String(reactionCount) });
 
-      // For group chats with 2 reactions, set the count text to "2"
+      // For group chats with 2 reactions, enable Count toggle and set count text to "2"
       if (isGroupChat && reactionCount === 2) {
-        // Try to find and set a Count property on the component
         for (const key of propKeys) {
           const keyLower = key.toLowerCase();
+          // Enable the Count boolean toggle
+          if (keyLower.includes('count') && props[key].type === 'BOOLEAN') {
+            chatReactionNode.setProperties({ [key]: true });
+            console.log(`[REACTION COUNT] Enabled count toggle "${key}"`);
+          }
+          // Set the Count text to "2"
           if (keyLower.includes('count') && props[key].type === 'TEXT') {
             chatReactionNode.setProperties({ [key]: '2' });
-            console.log(`[REACTION COUNT] Set count property "${key}" to "2"`);
-            break;
+            console.log(`[REACTION COUNT] Set count text "${key}" to "2"`);
           }
         }
+      }
 
-        // Also search for a nested text node named "Count" or containing count
-        function findCountText(node, depth = 0) {
-          if (depth > 10) return null;
-          if (node.type === 'TEXT' && node.name.toLowerCase().includes('count')) {
-            return node;
-          }
-          if ('children' in node) {
-            for (const child of node.children) {
-              const result = findCountText(child, depth + 1);
-              if (result) return result;
-            }
-          }
-          return null;
-        }
-        const countTextNode = findCountText(chatReactionNode);
-        if (countTextNode) {
-          try {
-            countTextNode.characters = '2';
-            console.log(`[REACTION COUNT] Set count text node "${countTextNode.name}" to "2"`);
-          } catch (e) {
-            console.log(`[REACTION COUNT] Could not set count text:`, e.message);
+      // For group chats with 1 reaction, make sure Count is off
+      if (isGroupChat && reactionCount === 1) {
+        for (const key of propKeys) {
+          const keyLower = key.toLowerCase();
+          if (keyLower.includes('count') && props[key].type === 'BOOLEAN') {
+            chatReactionNode.setProperties({ [key]: false });
+            break;
           }
         }
       }

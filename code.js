@@ -1917,7 +1917,7 @@ const REACTION_EMOJI = [
   { name: 'Face with Tears of Joy', keywords: ['lol', 'lmao', 'haha', 'hilarious', 'funny', 'dead', 'dying', 'crying', 'joke', 'omg', 'bruh', 'bro', 'stop', 'cant', "can't", 'wheeze', '😂', 'jk', 'kidding'] },
   { name: 'Ghost', keywords: ['lol', 'haha', 'dead', 'dying', 'im dead', "i'm dead", 'boo', 'spooky', 'ghost', 'disappear', 'vanish', 'bye', 'dip', 'sneak', 'creep'] },
   { name: 'Hear-No-Evil Monkey', keywords: ['omg', 'oops', 'embarrassed', 'shy', 'awkward', 'cringe', 'ugh', 'no', 'stop', 'cant', "can't", 'blush', 'lol', 'haha', 'whoops', 'sorry'] },
-  { name: 'New Moon Face', keywords: ['lol', 'shady', 'sneaky', 'side eye', 'sus', 'sketch', 'hmm', 'interesting', 'tea', 'drama', 'messy', 'spill', 'lowkey', 'oop'] },
+  { name: 'New Moon Face', keywords: ['vibes', 'mood', 'aesthetic', 'shady', 'sneaky', 'sus', 'hmm', 'interesting', 'tea', 'drama', 'lowkey', 'oop', 'vibe', 'energy', 'chaotic'] },
   { name: 'Thumbs Up', keywords: ['ok', 'okay', 'sure', 'yes', 'yep', 'yeah', 'good', 'cool', 'nice', 'great', 'sounds', 'bet', 'works', 'done', 'got it', 'gotcha', 'perfect', 'agree', 'down'] },
   { name: 'Ok Hand', keywords: ['ok', 'okay', 'perfect', 'nice', 'good', 'great', 'fine', 'cool', 'chef', 'kiss', 'spot on', 'nailed', 'smooth', 'clean', 'solid'] },
   { name: 'Clapping Hands', keywords: ['congrats', 'congratulations', 'proud', 'amazing', 'awesome', 'incredible', 'well done', 'bravo', 'yay', 'finally', 'win', 'won', 'did it', 'made it', 'achieved'] },
@@ -1929,8 +1929,8 @@ const REACTION_EMOJI = [
   { name: 'Butterfly', keywords: ['beautiful', 'pretty', 'gorgeous', 'aesthetic', 'vibes', 'glow', 'free', 'change', 'growth', 'transform', 'cute', 'sweet', 'nature', 'spring'] },
   { name: 'Hibiscus', keywords: ['beautiful', 'pretty', 'gorgeous', 'flower', 'cute', 'sweet', 'aesthetic', 'vibes', 'tropical', 'summer', 'vacation', 'love', 'pink'] },
   { name: 'Rainbow', keywords: ['happy', 'love', 'pride', 'beautiful', 'colorful', 'vibes', 'good', 'positive', 'amazing', 'wonderful', 'bright', 'joy', 'lucky'] },
-  { name: 'Folded Hands', keywords: ['please', 'pray', 'hope', 'thanks', 'thank', 'grateful', 'bless', 'wish', 'fingers crossed', 'hopefully', 'praying', 'amen'] },
-  { name: 'Hundred Points', keywords: ['100', 'facts', 'true', 'truth', 'exactly', 'real', 'agree', 'right', 'perfect', 'spot on', 'accurate', 'legit', 'fr', 'no cap', 'period'] }
+  { name: 'Folded Hands', keywords: ['yes', 'please', 'thanks', 'thank', 'agree', 'appreciate', 'grateful', 'respect', 'bless', 'hope', 'bet', 'sounds good', 'perfect', 'great', 'absolutely'] },
+  { name: 'Hundred Points', keywords: ['love', 'best', 'amazing', 'perfect', '100', 'facts', 'true', 'exactly', 'real', 'right', 'legit', 'fr', 'no cap', 'period', 'the best', 'incredible'] }
 ];
 
 /**
@@ -1972,7 +1972,7 @@ function pickContextualEmojiFromAvailable(messageText, emojiMap) {
     'joy': ['lol', 'lmao', 'haha', 'hahaha', 'hilarious', 'funny', 'dead', 'dying', 'crying', 'joke', 'omg', 'bruh', 'bro', 'stop', 'im dead', "i'm dead", 'wheeze', '😂', 'jk', 'kidding', 'rofl', 'happy', 'excited', 'yay', 'amazing', 'so good', 'the best', 'love it', 'love this'],
     'ghost': ['lol', 'haha', 'dead', 'dying', 'im dead', "i'm dead", 'boo', 'ghost', 'disappear', 'bye', 'dip', 'sneak'],
     'no-evil': ['omg', 'oops', 'embarrassed', 'shy', 'awkward', 'cringe', 'stop', 'cant', "can't", 'blush', 'lol', 'haha', 'whoops', 'sorry'],
-    'moon': ['lol', 'shady', 'sneaky', 'sus', 'sketch', 'hmm', 'interesting', 'tea', 'drama', 'messy', 'spill', 'lowkey', 'oop'],
+    'moon': ['vibes', 'mood', 'aesthetic', 'shady', 'sneaky', 'sus', 'hmm', 'interesting', 'tea', 'drama', 'lowkey', 'oop', 'vibe', 'energy', 'chaotic'],
     'fire': ['fire', 'hot', 'lit', 'amazing', 'insane', 'crazy', 'sick', 'dope', 'slay', 'ate', 'served', 'heat', 'flames', 'killing it', 'goat', 'legendary', 'epic', 'wild', 'bussin'],
     'voltage': ['fire', 'lit', 'energy', 'hype', 'crazy', 'insane', 'electric', 'wild', 'intense', 'whoa', 'boom', 'fast', 'quick'],
     'glowing': ['amazing', 'star', 'incredible', 'perfect', 'beautiful', 'stunning', 'goals', 'iconic', 'special', 'shine', 'bright', 'golden', 'best', 'wow', 'impressive'],
@@ -1980,8 +1980,8 @@ function pickContextualEmojiFromAvailable(messageText, emojiMap) {
     'butterfly': ['beautiful', 'pretty', 'gorgeous', 'aesthetic', 'vibes', 'glow', 'free', 'cute', 'sweet', 'nature', 'spring'],
     'hibiscus': ['beautiful', 'pretty', 'gorgeous', 'flower', 'cute', 'sweet', 'aesthetic', 'vibes', 'tropical', 'summer', 'love', 'pink'],
     'rainbow': ['happy', 'love', 'pride', 'beautiful', 'colorful', 'vibes', 'good', 'positive', 'amazing', 'wonderful', 'bright', 'joy', 'lucky'],
-    'pray': ['please', 'pray', 'hope', 'thanks', 'grateful', 'bless', 'fingers crossed', 'hopefully', 'amen'],
-    'hundred': ['100', 'facts', 'true', 'exactly', 'real', 'agree', 'fr', 'no cap', 'period', 'literally', 'so true', 'right']
+    'pray': ['yes', 'please', 'thanks', 'agree', 'appreciate', 'grateful', 'respect', 'bless', 'hope', 'bet', 'sounds good', 'perfect', 'great', 'absolutely'],
+    'hundred': ['love', 'best', 'amazing', 'perfect', '100', 'facts', 'true', 'exactly', 'real', 'right', 'legit', 'fr', 'no cap', 'period', 'the best', 'incredible']
   };
 
   // Score each available emoji
@@ -2735,13 +2735,14 @@ function setChatReactionVariant(textChatNode, isGroupChat = false, emojiList = [
       console.log(`[EMOJI SWAP] Available in emojiMap:`, Array.from(emojiMap.keys()));
 
       // Find emoji INSTANCE_SWAP properties
+      let emojiSlotIndex = 0;
       for (const key of propKeys) {
         if (key.toLowerCase().includes('emoji') && props[key].type === 'INSTANCE_SWAP') {
           console.log(`[EMOJI SWAP] Found INSTANCE_SWAP property: "${key}", current value: ${props[key].value}`);
 
-          // Pick the emoji from the list (should be the contextually chosen one)
-          const targetEmojiName = emojiList[0];
-          console.log(`[EMOJI SWAP] Target emoji: "${targetEmojiName}"`);
+          // Pick the emoji from the list for this slot
+          const targetEmojiName = emojiList[Math.min(emojiSlotIndex, emojiList.length - 1)];
+          console.log(`[EMOJI SWAP] Target emoji for slot ${emojiSlotIndex}: "${targetEmojiName}"`);
 
           // Find the matching component key from our discovered map
           let foundKey = null;
@@ -2783,7 +2784,13 @@ function setChatReactionVariant(textChatNode, isGroupChat = false, emojiList = [
           } else {
             console.log(`[EMOJI SWAP] ✗ No matching key found for "${targetEmojiName}"`);
           }
-          break; // Only set the first emoji property for 1:1 chats
+
+          emojiSlotIndex++;
+          // For 1:1 chats, only set the first emoji slot
+          // For group chats, set up to 2 slots (one per reaction)
+          if (!isGroupChat || emojiSlotIndex >= reactionCount) {
+            break;
+          }
         }
       }
     } else {
@@ -3007,7 +3014,16 @@ function applyReactionsToThread(threadNode, percentage, isGroupChat) {
     // Pick a contextual emoji based on the message content
     const selectedEmoji = pickContextualEmojiFromAvailable(messageText, emojiMap);
 
-    if (setReactionOnTextChat(chatComponent, true, isGroupChat, [selectedEmoji], emojiMap, assignedProfiles, messageSender)) {
+    // For group chats, pick a second different emoji for 2-reaction displays
+    const emojiListForMessage = [selectedEmoji];
+    if (isGroupChat) {
+      const availableEmoji = Array.from(emojiMap.keys()).filter(e => e !== selectedEmoji);
+      if (availableEmoji.length > 0) {
+        emojiListForMessage.push(availableEmoji[Math.floor(Math.random() * availableEmoji.length)]);
+      }
+    }
+
+    if (setReactionOnTextChat(chatComponent, true, isGroupChat, emojiListForMessage, emojiMap, assignedProfiles, messageSender)) {
       appliedCount++;
     }
   }

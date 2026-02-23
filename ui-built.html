@@ -1412,8 +1412,34 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
           } catch (e) {
             errorText = 'Unable to read error response';
           }
-          throw parseAPIError(response.status, errorText);
-        }
+          }
+
+          // Set emoji slider based on detected reactions in the thread
+          if (msg.currentReactions) {
+            const reactionsSlider = document.getElementById('reactions-slider');
+            const emojiShuffleBtn = document.getElementById('emoji-shuffle-btn');
+            if (reactionsSlider && msg.currentReactions.hasReactions) {
+              const ratio = msg.currentReactions.reactionRatio;
+              // Map ratio back to closest slider stop
+              // Percentages: 0→0%, 25→15%, 50→25%, 75→40%, 100→60%
+              let sliderValue = 0;
+              if (ratio > 0.45) {
+                sliderValue = 100;
+              } else if (ratio > 0.30) {
+                sliderValue = 75;
+              } else if (ratio > 0.18) {
+                sliderValue = 50;
+              } else if (ratio > 0) {
+                sliderValue = 25;
+              }
+              reactionsSlider.value = sliderValue;
+              updateReactionsSliderVisual();
+              if (emojiShuffleBtn) emojiShuffleBtn.disabled = sliderValue === 0;
+              console.log(`[UI] Set emoji slider to ${sliderValue} (ratio: ${(ratio * 100).toFixed(0)}%)`);
+            }
+          }
+
+          // Set length slider based on detected thread length
 
         let data;
         try {

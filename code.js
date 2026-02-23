@@ -1673,6 +1673,51 @@ async function detectMediaInThread(threadNode) {
 }
 
 /**
+ * Detect what reactions are currently present in a chat thread
+ * Returns: { hasReactions: boolean, reactionRatio: number }
+ * reactionRatio is the fraction of visible chat components that have reactions enabled
+ */
+function detectReactionsInThread(threadNode) {
+  const visibleBounds = getVisibleBounds(threadNode);
+  const allComponents = findAllReactableChatComponents(threadNode);
+  const visibleComponents = visibleBounds
+    ? allComponents.filter(comp => isNodeInVisibleBounds(comp, visibleBounds))
+    : allComponents;
+
+  if (visibleComponents.length === 0) {
+    return { hasReactions: false, reactionRatio: 0, reactedCount: 0, totalCount: 0 };
+  }
+
+  let reactedCount = 0;
+  for (const comp of visibleComponents) {
+    if (comp.type !== 'INSTANCE') continue;
+    try {
+      const props = comp.componentProperties;
+      for (const key of Object.keys(props)) {
+        if (key.toLowerCase().includes('reaction') && props[key].type === 'BOOLEAN') {
+          if (props[key].value === true) {
+            reactedCount++;
+          }
+          break;
+        }
+      }
+    } catch (e) {
+      // skip
+    }
+  }
+
+  const reactionRatio = reactedCount / visibleComponents.length;
+  console.log(`[REACTION DETECT] ${reactedCount}/${visibleComponents.length} messages have reactions (${(reactionRatio * 100).toFixed(0)}%)`);
+
+  return {
+    hasReactions: reactedCount > 0,
+    reactionRatio: reactionRatio,
+    reactedCount: reactedCount,
+    totalCount: visibleComponents.length
+  };
+}
+
+/**
  * Convert structure to a pattern description for Llama
  * e.g., "3 messages from Person A, then 2 messages from Person B, then 1 from Person A"
  */
@@ -1747,6 +1792,9 @@ figma.on('selectionchange', async () => {
   // Detect what media types are currently in the thread
   const mediaState = await detectMediaInThread(selection[0]);
 
+  // Detect existing reactions in the thread
+  const reactionState = detectReactionsInThread(selection[0]);
+
   // Detect thread length category based on the height of the thread component
   // Targets are: Short=917px, Medium=1064px, Long=2200px
   const threadHeight = selection[0].height || 0;
@@ -1778,6 +1826,7 @@ figma.on('selectionchange', async () => {
     isGroupChat: result.isGroupChat,
     participants: result.participants,
     currentMedia: mediaState,
+    currentReactions: reactionState,
     threadLength: threadLength,
     lengthSliderValue: lengthSliderValue,
     threadHeight: Math.round(threadHeight)

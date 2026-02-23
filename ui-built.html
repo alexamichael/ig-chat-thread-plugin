@@ -1414,32 +1414,6 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
           }
           }
 
-          // Set emoji slider based on detected reactions in the thread
-          if (msg.currentReactions) {
-            const reactionsSliderEl = document.getElementById('reactions-slider');
-            const reactionsProgressEl = document.getElementById('reactions-progress');
-            const emojiShuffleBtnEl = document.getElementById('emoji-shuffle-btn');
-            if (reactionsSliderEl && msg.currentReactions.hasReactions) {
-              const ratio = msg.currentReactions.reactionRatio;
-              // Map ratio back to closest slider stop
-              // Percentages: 0→0%, 25→15%, 50→25%, 75→40%, 100→60%
-              let sliderValue = 0;
-              if (ratio > 0.45) {
-                sliderValue = 100;
-              } else if (ratio > 0.30) {
-                sliderValue = 75;
-              } else if (ratio > 0.18) {
-                sliderValue = 50;
-              } else if (ratio > 0) {
-                sliderValue = 25;
-              }
-              reactionsSliderEl.value = sliderValue;
-              if (reactionsProgressEl) reactionsProgressEl.style.width = `${sliderValue}%`;
-              if (emojiShuffleBtnEl) emojiShuffleBtnEl.disabled = sliderValue === 0;
-              console.log(`[UI] Set emoji slider to ${sliderValue} (ratio: ${(ratio * 100).toFixed(0)}%)`);
-            }
-          }
-
           // Set length slider based on detected thread length
 
         let data;
@@ -1628,6 +1602,30 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
               lengthProgress.style.width = msg.lengthSliderValue + '%';
               console.log('[UI] Progress width set to:', msg.lengthSliderValue + '%');
             }
+          }
+        }
+
+        // Set emoji slider based on detected reactions in the thread
+        if (msg.currentReactions && msg.currentReactions.hasReactions) {
+          const reactionsSliderEl = document.getElementById('reactions-slider');
+          const reactionsProgressEl = document.getElementById('reactions-progress');
+          const emojiShuffleBtnEl = document.getElementById('emoji-shuffle-btn');
+          if (reactionsSliderEl) {
+            const ratio = msg.currentReactions.reactionRatio;
+            let sliderValue = 0;
+            if (ratio > 0.45) {
+              sliderValue = 100;
+            } else if (ratio > 0.30) {
+              sliderValue = 75;
+            } else if (ratio > 0.18) {
+              sliderValue = 50;
+            } else if (ratio > 0) {
+              sliderValue = 25;
+            }
+            reactionsSliderEl.value = sliderValue;
+            if (reactionsProgressEl) reactionsProgressEl.style.width = `${sliderValue}%`;
+            if (emojiShuffleBtnEl) emojiShuffleBtnEl.disabled = sliderValue === 0;
+            console.log(`[UI] Set emoji slider to ${sliderValue} (ratio: ${(ratio * 100).toFixed(0)}%)`);
           }
         }
 

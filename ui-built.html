@@ -1606,12 +1606,12 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
         }
 
         // Set emoji slider based on detected reactions in the thread
-        if (msg.currentReactions && msg.currentReactions.hasReactions) {
+        if (msg.currentReactions) {
           const reactionsSliderEl = document.getElementById('reactions-slider');
           const reactionsProgressEl = document.getElementById('reactions-progress');
           const emojiShuffleBtnEl = document.getElementById('emoji-shuffle-btn');
           if (reactionsSliderEl) {
-            const ratio = msg.currentReactions.reactionRatio;
+            const ratio = msg.currentReactions.reactionRatio || 0;
             let sliderValue = 0;
             if (ratio > 0.45) {
               sliderValue = 100;

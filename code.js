@@ -5561,6 +5561,53 @@ figma.ui.onmessage = async (msg) => {
     return;
   }
 
+  if (msg.type === 'shuffle-reactions') {
+    const selection = figma.currentPage.selection;
+
+    if (selection.length === 0) {
+      figma.ui.postMessage({
+        type: 'error',
+        message: 'Please select a Chat Thread component first'
+      });
+      return;
+    }
+
+    const threadNode = selection[0];
+    const percentage = msg.percentage;
+
+    let isGroupChat = false;
+    if (threadNode.type === 'INSTANCE') {
+      try {
+        const props = threadNode.componentProperties;
+        for (const key of Object.keys(props)) {
+          if (key.toLowerCase().includes('group')) {
+            const value = props[key].value;
+            isGroupChat = typeof value === 'boolean' ? value : value === 'True';
+            break;
+          }
+        }
+      } catch (e) {
+        console.log('[REACTION] Could not read group chat property:', e.message);
+      }
+    }
+
+    console.log(`[REACTION] Shuffling reactions at ${percentage}% (isGroupChat: ${isGroupChat})`);
+    const result = applyReactionsToThread(threadNode, percentage, isGroupChat);
+
+    if (result.total === 0) {
+      figma.ui.postMessage({
+        type: 'error',
+        message: 'No Text chat components found in selection'
+      });
+    } else {
+      figma.ui.postMessage({
+        type: 'success',
+        message: `Shuffled reactions on ${result.applied} of ${result.total} messages`
+      });
+    }
+    return;
+  }
+
   if (msg.type === 'apply-stickers') {
     const selection = figma.currentPage.selection;
 

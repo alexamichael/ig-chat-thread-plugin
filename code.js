@@ -59,9 +59,12 @@ const EMOJI_COMPONENT_KEYS = {
   'Thumbs Up': 'ad40ef25df39f32ea39b6f90b2a23697ae68ad82',
   'Purple Heart': 'c3a06a077d09d96d2ef67ba9e546d50ba677ce14',
   'Fire': '9af07ac82f5a657eee481d75e5c069355fc54121',
-  'Pouting Face': '09236c1257bc0920088a2a8ed7f81fbc271d08d4',
-  'Face Screaming in Fear': 'd749e887b72bb762f6adb2eec1d33994c05fe752',
-  'Face with Tears of Joy': '1a7453323b4a23490c0569f88f2e1ec33d832aca'
+  'Face with Tears of Joy': '1a7453323b4a23490c0569f88f2e1ec33d832aca',
+  'Smiling Face with Heart-Eyes': '4e5198e4ed150a2b04cf1e1eb4732351ad74467d',
+  'Smiling Face with Hearts': 'c79f1eaebff885fd9644691ba8a95b1ca80b0a1b',
+  'Clapping Hands': 'ff29714e7ddb5ae42b4126edc90a1917ef7fa4a7',
+  'Raising Hands': '19185ae765a0964fafd5dda9f03f766b517f81e7',
+  'Glowing Star': '6d3c418c328d7699cea6a6dd665195d1a5d902a1'
 };
 
 // Cache for imported emoji component IDs (maps component key → node ID)
@@ -1895,16 +1898,18 @@ function diagnosticLogAllProperties(node, maxDepth = 15) {
 const REACTION_EMOJI = [
   { name: 'Red Heart', keywords: ['love', 'heart', 'miss', 'care', 'sweet', 'cute', 'aww', 'babe', 'baby', 'xo', '❤️', 'thanks', 'thank', 'appreciate', 'grateful', 'best', 'amazing'] },
   { name: 'Purple Heart', keywords: ['love', 'purple', 'fave', 'favorite', 'bestie', 'bff', 'always', 'forever'] },
+  { name: 'Smiling Face with Heart-Eyes', keywords: ['love', 'gorgeous', 'beautiful', 'pretty', 'handsome', 'hot', 'cute', 'obsessed', 'perfect', 'goals', 'wow', 'stunning', 'dreamy', 'crush'] },
+  { name: 'Smiling Face with Hearts', keywords: ['love', 'adore', 'sweet', 'aww', 'cute', 'babe', 'baby', 'happy', 'blessed', 'thankful', 'grateful', 'caring', 'wholesome'] },
   { name: 'Fire', keywords: ['fire', 'hot', 'lit', 'amazing', 'insane', 'crazy', 'sick', 'dope', 'heat', 'flames', 'killing', 'slay', 'ate', 'served', 'iconic'] },
   { name: 'Face with Tears of Joy', keywords: ['lol', 'lmao', 'haha', 'hilarious', 'funny', 'dead', 'dying', 'crying', 'joke', 'omg', 'bruh', 'bro', 'stop', 'cant', "can't", 'wheeze', '😂', 'jk', 'kidding'] },
-  { name: 'Loudly Crying Face', keywords: ['sad', 'cry', 'crying', 'sob', 'miss', 'wish', 'ugh', 'hate', 'worst', 'terrible', 'awful', 'no', 'whyy', 'pain', 'hurt', 'lonely', 'depressed'] },
-  { name: 'Smiling Face with Heart-Eyes', keywords: ['love', 'gorgeous', 'beautiful', 'pretty', 'handsome', 'hot', 'cute', 'obsessed', 'perfect', 'goals', 'wow', 'stunning', 'dreamy', 'crush'] },
   { name: 'Thumbs Up', keywords: ['ok', 'okay', 'sure', 'yes', 'yep', 'yeah', 'good', 'cool', 'nice', 'great', 'sounds', 'bet', 'works', 'done', 'got it', 'gotcha', 'perfect', 'agree', 'down'] },
   { name: 'Clapping Hands', keywords: ['congrats', 'congratulations', 'proud', 'amazing', 'awesome', 'incredible', 'well done', 'bravo', 'yay', 'finally', 'win', 'won', 'did it', 'made it', 'achieved'] },
+  { name: 'Raising Hands', keywords: ['yay', 'excited', 'celebrate', 'woo', 'yes', 'finally', 'amazing', 'awesome', 'lets go', 'omg', 'so good', 'love it', 'happy', 'pumped', 'hyped'] },
+  { name: 'Grinning Face with Big Eyes', keywords: ['happy', 'excited', 'yay', 'haha', 'hehe', 'funny', 'silly', 'goofy', 'laugh', ':)', '😊'] },
+  { name: 'Glowing Star', keywords: ['amazing', 'star', 'incredible', 'perfect', 'beautiful', 'stunning', 'goals', 'iconic', 'special', 'shine', 'bright', 'golden', 'best', 'wow', 'impressive'] },
+  { name: 'Sparkles', keywords: ['new', 'exciting', 'special', 'magic', 'amazing', 'beautiful', 'aesthetic', 'vibes', 'perfect', 'love', 'yay', 'finally', 'dream', 'happy', 'blessed'] },
   { name: 'Folded Hands', keywords: ['please', 'pray', 'hope', 'thanks', 'thank', 'grateful', 'bless', 'wish', 'fingers crossed', 'hopefully', 'praying', 'amen'] },
-  { name: 'Hundred Points', keywords: ['100', 'facts', 'true', 'truth', 'exactly', 'real', 'agree', 'right', 'perfect', 'spot on', 'accurate', 'legit', 'fr', 'no cap', 'period'] },
-  { name: 'Face Screaming in Fear', keywords: ['omg', 'what', 'shocked', 'surprised', 'crazy', 'insane', 'cant believe', "can't believe", 'no way', 'seriously', 'shook', 'wild', 'unreal', 'wtf', 'wait'] },
-  { name: 'Sparkles', keywords: ['new', 'exciting', 'special', 'magic', 'amazing', 'beautiful', 'aesthetic', 'vibes', 'perfect', 'love', 'yay', 'finally', 'dream', 'happy', 'blessed'] }
+  { name: 'Hundred Points', keywords: ['100', 'facts', 'true', 'truth', 'exactly', 'real', 'agree', 'right', 'perfect', 'spot on', 'accurate', 'legit', 'fr', 'no cap', 'period'] }
 ];
 
 /**
@@ -1935,18 +1940,18 @@ function pickContextualEmojiFromAvailable(messageText, emojiMap) {
   const emojiKeywords = {
     'heart': ['love', 'heart', 'miss', 'care', 'sweet', 'cute', 'aww', 'thanks', 'thank', 'appreciate', 'best', 'amazing', 'babe', 'baby', 'xo', '❤️', 'ily', 'luv', 'adore', 'beautiful', 'gorgeous', 'pretty'],
     'purple': ['purple', 'fave', 'favorite', 'bestie', 'bff', 'always', 'forever', 'queen', 'slay', 'iconic'],
+    'heart-eyes': ['love', 'gorgeous', 'beautiful', 'pretty', 'handsome', 'hot', 'cute', 'obsessed', 'perfect', 'goals', 'wow', 'stunning', 'dreamy', 'crush'],
+    'with hearts': ['love', 'adore', 'sweet', 'aww', 'cute', 'babe', 'baby', 'happy', 'blessed', 'thankful', 'grateful', 'caring', 'wholesome'],
     'thumbs': ['ok', 'okay', 'sure', 'yes', 'yep', 'yeah', 'good', 'cool', 'nice', 'great', 'sounds', 'bet', 'works', 'done', 'got it', 'agree', 'down', 'perfect', 'fine', 'alright', 'np', 'no problem', 'kk', 'k'],
+    'clap': ['congrats', 'proud', 'amazing', 'awesome', 'yay', 'finally', 'win', 'won', 'did it', 'made it', 'achieved', 'bravo'],
+    'raising': ['yay', 'excited', 'celebrate', 'woo', 'yes', 'finally', 'amazing', 'awesome', 'lets go', 'omg', 'so good', 'love it', 'happy', 'pumped', 'hyped'],
     'grinning': ['lol', 'haha', 'hehe', 'funny', 'hilarious', 'joke', 'laugh', 'silly', 'goofy', ':)', '😊', 'happy', 'yay', 'excited'],
     'joy': ['lol', 'lmao', 'haha', 'hahaha', 'hilarious', 'funny', 'dead', 'dying', 'crying', 'joke', 'omg', 'bruh', 'bro', 'stop', 'im dead', "i'm dead", 'wheeze', '😂', 'jk', 'kidding', 'rofl', 'happy', 'excited', 'yay', 'amazing', 'so good', 'the best', 'love it', 'love this'],
     'fire': ['fire', 'hot', 'lit', 'amazing', 'insane', 'crazy', 'sick', 'dope', 'slay', 'ate', 'served', 'heat', 'flames', 'killing it', 'goat', 'legendary', 'epic', 'wild', 'bussin'],
-    'crying': ['sad', 'cry', 'crying', 'sob', 'miss you', 'ugh', 'hate', 'worst', 'terrible', 'awful', 'depressed', 'lonely', 'pain', 'hurt'],
-    'pouting': ['mad', 'angry', 'annoyed', 'frustrated', 'ugh', 'hate', 'annoying', 'irritated', 'pissed', 'wtf', 'seriously', 'really'],
-    'scream': ['omg', 'what', 'shocked', 'surprised', 'no way', 'shook', 'wtf', 'wait', 'hold up', 'excuse me', 'are you serious', 'cant believe', "can't believe", 'unreal', 'insane', 'crazy', 'wild'],
+    'glowing': ['amazing', 'star', 'incredible', 'perfect', 'beautiful', 'stunning', 'goals', 'iconic', 'special', 'shine', 'bright', 'golden', 'best', 'wow', 'impressive'],
     'sparkle': ['new', 'exciting', 'special', 'magic', 'beautiful', 'perfect', 'aesthetic', 'vibes', 'blessed', 'dream', 'finally', 'yay'],
-    'clap': ['congrats', 'proud', 'amazing', 'awesome', 'yay', 'finally', 'win', 'won', 'did it', 'made it', 'achieved', 'bravo'],
     'pray': ['please', 'pray', 'hope', 'thanks', 'grateful', 'bless', 'fingers crossed', 'hopefully', 'amen'],
-    'hundred': ['100', 'facts', 'true', 'exactly', 'real', 'agree', 'fr', 'no cap', 'period', 'literally', 'so true', 'right'],
-    'eyes': ['lol', 'haha', 'funny', 'wow', 'omg', 'look', 'see', 'check']
+    'hundred': ['100', 'facts', 'true', 'exactly', 'real', 'agree', 'fr', 'no cap', 'period', 'literally', 'so true', 'right']
   };
 
   // Score each available emoji

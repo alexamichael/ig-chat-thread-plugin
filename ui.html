@@ -279,6 +279,26 @@
       z-index: 1;
     }
 
+    .slider-stops {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .slider-stops .stop {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 4px;
+      height: 4px;
+      background: #8E8E93;
+      border-radius: 50%;
+    }
+
     .slider-input {
       -webkit-appearance: none;
       appearance: none;
@@ -886,7 +906,11 @@
           <div class="slider-track-wrapper">
             <div class="slider-track"></div>
             <div class="slider-progress" id="reactions-progress"></div>
-            <div class="slider-notch"></div>
+            <div class="slider-stops">
+              <div class="stop" style="left: 25%"></div>
+              <div class="stop" style="left: 50%"></div>
+              <div class="stop" style="left: 75%"></div>
+            </div>
             <input type="range" id="reactions-slider" class="slider-input" min="0" max="100" step="25" value="0">
           </div>
         </div>

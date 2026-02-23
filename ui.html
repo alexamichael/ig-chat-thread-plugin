@@ -1416,9 +1416,10 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
 
           // Set emoji slider based on detected reactions in the thread
           if (msg.currentReactions) {
-            const reactionsSlider = document.getElementById('reactions-slider');
-            const emojiShuffleBtn = document.getElementById('emoji-shuffle-btn');
-            if (reactionsSlider && msg.currentReactions.hasReactions) {
+            const reactionsSliderEl = document.getElementById('reactions-slider');
+            const reactionsProgressEl = document.getElementById('reactions-progress');
+            const emojiShuffleBtnEl = document.getElementById('emoji-shuffle-btn');
+            if (reactionsSliderEl && msg.currentReactions.hasReactions) {
               const ratio = msg.currentReactions.reactionRatio;
               // Map ratio back to closest slider stop
               // Percentages: 0→0%, 25→15%, 50→25%, 75→40%, 100→60%
@@ -1432,9 +1433,9 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
               } else if (ratio > 0) {
                 sliderValue = 25;
               }
-              reactionsSlider.value = sliderValue;
-              updateReactionsSliderVisual();
-              if (emojiShuffleBtn) emojiShuffleBtn.disabled = sliderValue === 0;
+              reactionsSliderEl.value = sliderValue;
+              if (reactionsProgressEl) reactionsProgressEl.style.width = `${sliderValue}%`;
+              if (emojiShuffleBtnEl) emojiShuffleBtnEl.disabled = sliderValue === 0;
               console.log(`[UI] Set emoji slider to ${sliderValue} (ratio: ${(ratio * 100).toFixed(0)}%)`);
             }
           }

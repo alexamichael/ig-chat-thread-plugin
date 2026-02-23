@@ -887,7 +887,7 @@
             <div class="slider-track"></div>
             <div class="slider-progress" id="reactions-progress"></div>
             <div class="slider-notch"></div>
-            <input type="range" id="reactions-slider" class="slider-input" min="0" max="100" step="50" value="0">
+            <input type="range" id="reactions-slider" class="slider-input" min="0" max="100" step="25" value="0">
           </div>
         </div>
       </div>
@@ -1620,8 +1620,9 @@ Output format: Return ONLY a JSON array of ${structure.length} message strings i
 
     reactionsSlider.addEventListener('change', () => {
       const value = parseInt(reactionsSlider.value);
-      // Map slider values: 0=None, 50=Some (25%), 100=Lots (50%)
-      const percentage = value === 0 ? 0 : (value === 50 ? 25 : 50);
+      // Map slider values: 0=Off, 25=Low (15%), 50=Medium (25%), 75=High (40%), 100=Max (60%)
+      const percentageMap = { 0: 0, 25: 15, 50: 25, 75: 40, 100: 60 };
+      const percentage = percentageMap[value] || 0;
       if (percentage > 0) {
         parent.postMessage({
           pluginMessage: {

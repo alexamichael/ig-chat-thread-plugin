@@ -2881,14 +2881,22 @@ function applyReactionsToThread(threadNode, percentage, isGroupChat) {
 
   // Determine spacing based on percentage
   let baseInterval, variation;
-  if (percentage === 25) {
-    // "Some" - every 4-5 messages (base 4, variation 0-1)
-    baseInterval = 4;
-    variation = 2; // Math.random() * 2 gives 0-1.99, floor gives 0 or 1
-  } else if (percentage === 50) {
-    // "Lots" - every 2-3 messages (base 2, variation 0-1)
+  if (percentage === 15) {
+    // "Low" - every 5-7 messages
+    baseInterval = 5;
+    variation = 3;
+  } else if (percentage === 25) {
+    // "Medium" - every 3-5 messages
+    baseInterval = 3;
+    variation = 3;
+  } else if (percentage === 40) {
+    // "High" - every 2-3 messages
     baseInterval = 2;
-    variation = 2; // Math.random() * 2 gives 0-1.99, floor gives 0 or 1
+    variation = 2;
+  } else if (percentage === 60) {
+    // "Max" - every 1-2 messages
+    baseInterval = 1;
+    variation = 2;
   } else {
     baseInterval = 3;
     variation = 2;

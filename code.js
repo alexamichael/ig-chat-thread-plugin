@@ -2749,6 +2749,17 @@ function setChatReactionVariant(textChatNode, isGroupChat = false, emojiList = [
         }
       }
 
+      // For 1:1 chats, always disable Count
+      if (!isGroupChat) {
+        for (const key of propKeys) {
+          const keyLower = key.toLowerCase();
+          if (keyLower.includes('count') && props[key].type === 'BOOLEAN') {
+            chatReactionNode.setProperties({ [key]: false });
+            break;
+          }
+        }
+      }
+
       // For group chats with 1 or 2 reactions, set the profile photos
       if (isGroupChat && assignedProfiles && (reactionCount === 1 || reactionCount === 2)) {
         console.log(`[REACTION PROFILE] Setting profiles for ${reactionCount} reaction(s) in group chat (sender: ${messageSender})`);
